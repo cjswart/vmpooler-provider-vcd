@@ -1,5 +1,5 @@
 # frozen_string_literal: true
 
-module VmpoolerProviderVsphere
+module VmpoolerProviderVcd
   VERSION = '1.0.0'
 end
