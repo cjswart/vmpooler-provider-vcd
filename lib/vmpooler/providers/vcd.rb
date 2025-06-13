@@ -8,7 +8,7 @@ require 'vmpooler/providers/base'
 module Vmpooler
   class PoolManager
     class Provider
-      class VSphere < Vmpooler::PoolManager::Provider::Base
+      class Vcd < Vmpooler::PoolManager::Provider::Base
         # The connection_pool method is normally used only for testing
         attr_reader :connection_pool
 
