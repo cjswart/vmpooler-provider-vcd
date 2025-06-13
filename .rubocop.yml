@@ -1,0 +1,98 @@
+inherit_from: .rubocop_todo.yml
+
+AllCops:
+  Include:
+    - 'lib/**/*.rb'
+  Exclude:
+    - 'scripts/**/*'
+    - 'spec/**/*'
+    - 'vendor/**/*'
+    - Gemfile
+    - Rakefile
+    - Vagrantfile
+
+Style/Documentation:
+  Enabled: false
+
+# Line length is not useful
+Layout/LineLength:
+  Enabled: false
+
+# Empty method definitions over more than one line is ok
+Style/EmptyMethod:
+  Enabled: false
+
+# Due to legacy codebase
+#   - Globals are used liberally
+Style/GlobalVars:
+  Enabled: false
+#   - A lot of complexity  
+Metrics/AbcSize:
+  Enabled: false
+Metrics/PerceivedComplexity:
+  Enabled: false
+Metrics/CyclomaticComplexity:
+  Enabled: false
+Metrics/BlockNesting:
+  Enabled: false
+#   - Long Methods, Classes, Blocks, and Modules
+Metrics/MethodLength:
+  Enabled: false
+Metrics/ClassLength:
+  Enabled: false
+Metrics/BlockLength:
+  Enabled: false
+Metrics/ModuleLength:
+  Enabled: false
+
+# WordArray is crashing rubocop in lib/vmpooler/api/helpers.rb
+Style/WordArray:
+  Enabled: false
+
+# RedundantBegin is causing lib/pool_manager & vsphere.rb to fail in Ruby 2.5+
+Style/RedundantBegin:
+  Enabled: false
+
+# Either sytnax for regex is ok
+Style/RegexpLiteral:
+  Enabled: false
+
+# In some cases readability is better without these cops enabled
+Style/ConditionalAssignment:
+  Enabled: false
+Style/Next:
+  Enabled: false
+Metrics/ParameterLists:
+  Max: 10
+Style/GuardClause:
+  Enabled: false
+
+# Enforce LF line endings, even when on Windows
+Layout/EndOfLine:
+  EnforcedStyle: lf
+
+# Added in 0.80, don't really care about the change
+Style/HashEachMethods:
+  Enabled: false
+
+# Added in 0.80, don't really care about the change
+Style/HashTransformKeys:
+  Enabled: false
+
+# Added in 0.80, don't really care about the change
+Style/HashTransformValues:
+  Enabled: false
+
+# These short variable names make sense as exceptions to the rule, but generally I think short variable names do hurt readability
+Naming/MethodParameterName:
+  AllowedNames:
+    - vm
+    - dc
+    - s
+    - x
+    - f
+
+# Standard comparisons seem more readable
+Style/NumericPredicate:
+  Enabled: true
+  EnforcedStyle: comparison
