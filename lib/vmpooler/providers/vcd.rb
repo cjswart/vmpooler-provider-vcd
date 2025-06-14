@@ -39,6 +39,7 @@ module Vmpooler
             # object.  Instead by wrapping it in a Hash, the Hash object reference itself never changes but the content of the
             # Hash can change, and is preserved across invocations.
             new_conn = connect_to_vcd
+            logger.log('d', "[#{new_conn}] connection object")
             { connection: new_conn }
           end
           @provider_hosts = {}
