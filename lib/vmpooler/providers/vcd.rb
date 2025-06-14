@@ -649,10 +649,7 @@ module Vmpooler
           retry_factor = global_config[:config]['retry_factor'] || 10
           try = 1
           begin
-            connection = RbVmomi::VIM.connect host: provider_config['server'],
-                                              user: provider_config['username'],
-                                              password: provider_config['password'],
-                                              insecure: provider_config['insecure'] || false
+            connection = cloudapi(provider_config['vcloud_url'],provider_config['auth_encoded'], provider_config['api_version]'])
             metrics.increment('connect.open')
             connection
           rescue StandardError => e
@@ -1225,6 +1222,33 @@ module Vmpooler
           return if pool['create_linked_clone'] == false
           return true if pool['create_linked_clone']
           return true if @config[:config]['create_linked_clones']
+        end
+        def cloudapi_login(vcloud_url,auth_encoded,api_version)
+          uri = URI("#{vcloud_url}/cloudapi/1.0.0/sessions")
+          request = Net::HTTP::Post.new(uri)
+          request['Accept'] = "application/*;version=#{api_version}"
+          # Create Base64 encoded authorization string
+          #auth_string = Base64.strict_encode64("#{username}:#{password}")
+          #puts auth_string
+          request['Authorization'] = "Basic #{auth_encoded}"
+
+          response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
+            http.request(request)
+          end
+
+          if response.is_a?(Net::HTTPSuccess)
+            logger.log('d', "[#{name}] Connection Pool - succesfull authenticated to vCD #{vcloud_url} with API version #{api_version}")
+            connection = {
+              vcloud_url: vcloud_url,
+              api_version: api_version,
+              auth_encoded: auth_encoded,
+              session_token: response['X-VMWARE-VCLOUD-ACCESS-TOKEN'],
+            }
+            connection
+          else
+            logger.log('d', "[#{name}] Connection Pool - authentication failed to vCD #{vcloud_url} with API version #{api_version}")
+            nil
+          end
         end
       end
     end
