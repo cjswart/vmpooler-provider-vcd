@@ -1224,9 +1224,10 @@ module Vmpooler
           return true if @config[:config]['create_linked_clones']
         end
         def cloudapi_login(vcloud_url,auth_encoded,api_version)
+          logger.log('d', "[#{name}] Connection Pool - authenticating to vCD #{vcloud_url} with API version #{api_version} auth_coded #{auth_encoded}")
           uri = URI("#{vcloud_url}/cloudapi/1.0.0/sessions")
           request = Net::HTTP::Post.new(uri)
-          request['Accept'] = "application/*;version=#{api_version}"
+          request['Accept'] = "application/*;version=39.1"
           # Create Base64 encoded authorization string
           #auth_string = Base64.strict_encode64("#{username}:#{password}")
           #puts auth_string
