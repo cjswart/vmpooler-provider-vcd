@@ -649,7 +649,7 @@ module Vmpooler
           retry_factor = global_config[:config]['retry_factor'] || 10
           try = 1
           begin
-            connection = cloudapi(provider_config['vcloud_url'],provider_config['auth_encoded'], provider_config['api_version]'])
+            connection = cloudapi_login(provider_config['vcloud_url'],provider_config['auth_encoded'], provider_config['api_version]'])
             metrics.increment('connect.open')
             connection
           rescue StandardError => e
