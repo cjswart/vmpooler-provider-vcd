@@ -319,79 +319,10 @@ module Vmpooler
         def create_vm(pool_name, new_vmname)
           pool = pool_config(pool_name)
           logger.log('d', "[+] [#{pool_name}] creating VM '#{new_vmname}'")
-          sleep 5
-          raise("Pool #{pool_name} does not exist for the provider #{name}") if pool.nil?
+          sleep(5) # Give time for the logger to flush
+          raise("Pool #{pool_name} does not exist for the provider #{name}")
 
           vm_hash = nil
-          @connection_pool.with_metrics do |pool_object|
-            connection = ensured_vcd_connection(pool_object)
-            # Assume all pool config is valid i.e. not missing
-            template_path = pool['template']
-            target_folder_path = pool['folder']
-            target_datastore = pool['datastore']
-            target_datacenter_name = get_target_datacenter_from_config(pool_name)
-
-            # Get the template VM object
-            raise("Pool #{pool_name} did not specify a full path for the template for the provider #{name}") unless valid_template_path? template_path
-
-            template_vm_object = find_template_vm(pool, connection)
-
-            extra_config = [
-              { key: 'guestinfo.hostname', value: new_vmname }
-            ]
-
-            if pool.key?('snapshot_mainMem_ioBlockPages')
-              ioblockpages = pool['snapshot_mainMem_ioBlockPages']
-              extra_config.push(
-                { key: 'mainMem.ioBlockPages', value: ioblockpages }
-              )
-            end
-            if pool.key?('snapshot_mainMem_iowait')
-              iowait = pool['snapshot_mainMem_iowait']
-              extra_config.push(
-                { key: 'mainMem.iowait', value: iowait }
-              )
-            end
-
-            # Annotate with creation time, origin template, etc.
-            # Add extraconfig options that can be queried by vmtools
-            config_spec = create_config_spec(new_vmname, template_path, extra_config)
-
-            # Check if alternate network configuration is specified and add configuration
-            if pool.key?('network')
-              template_vm_network_device = template_vm_object.config.hardware.device.grep(RbVmomi::VIM::VirtualEthernetCard).first
-              network_name = pool['network']
-              network_device = set_network_device(target_datacenter_name, template_vm_network_device, network_name, connection)
-              config_spec.deviceChange = [{ operation: 'edit', device: network_device }]
-            end
-
-            # Put the VM in the specified folder and resource pool
-            relocate_spec = create_relocate_spec(target_datastore, target_datacenter_name, pool_name, connection)
-
-            # Create a clone spec
-            clone_spec = create_clone_spec(relocate_spec, config_spec)
-
-            begin
-              vm_target_folder = find_vm_folder(pool_name, connection)
-              vm_target_folder ||= create_folder(connection, target_folder_path, target_datacenter_name) if @config[:config].key?('create_folders') && (@config[:config]['create_folders'] == true)
-            rescue StandardError
-              if @config[:config].key?('create_folders') && (@config[:config]['create_folders'] == true)
-                vm_target_folder = create_folder(connection, target_folder_path, target_datacenter_name)
-              else
-                raise
-              end
-            end
-            raise ArgumentError, "Cannot find the configured folder for #{pool_name} #{target_folder_path}" unless vm_target_folder
-
-            # Create the new VM
-            new_vm_object = template_vm_object.CloneVM_Task(
-              folder: vm_target_folder,
-              name: new_vmname,
-              spec: clone_spec
-            ).wait_for_completion
-
-            vm_hash = generate_vm_hash(new_vm_object, pool_name)
-          end
           vm_hash
         end
 
@@ -651,7 +582,7 @@ module Vmpooler
           retry_factor = global_config[:config]['retry_factor'] || 10
           try = 1
           begin
-            connection = cloudapi_login(provider_config['vcloud_url'],provider_config['auth_encoded'], provider_config['api_version]'])
+            connection = cloudapi_login(provider_config['vcloud_url'],provider_config['auth_encoded'], provider_config['api_version'])
             metrics.increment('connect.open')
             connection
           rescue StandardError => e
@@ -1229,7 +1160,7 @@ module Vmpooler
           logger.log('d', "[#{name}] Connection Pool - authenticating to vCD #{vcloud_url} with API version #{api_version} auth_coded #{auth_encoded}")
           uri = URI("#{vcloud_url}/cloudapi/1.0.0/sessions")
           request = Net::HTTP::Post.new(uri)
-          request['Accept'] = "application/*;version=39.1"
+          request['Accept'] = "application/*;version=#{api_version}"
           # Create Base64 encoded authorization string
           #auth_string = Base64.strict_encode64("#{username}:#{password}")
           #puts auth_string
