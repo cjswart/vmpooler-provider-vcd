@@ -318,6 +318,8 @@ module Vmpooler
 
         def create_vm(pool_name, new_vmname)
           pool = pool_config(pool_name)
+          logger.log('d', "[+] [#{pool_name}] creating VM '#{new_vmname}'")
+          sleep 5
           raise("Pool #{pool_name} does not exist for the provider #{name}") if pool.nil?
 
           vm_hash = nil
