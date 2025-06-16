@@ -33,7 +33,7 @@ module Vmpooler
             size: connpool_size,
             timeout: connpool_timeout
           ) do
-            logger.log('d', "[#{name}] CJS Connection Pool - Creating a connection object version 1.0.2")
+            logger.log('d', "[#{name}] CJS Connection Pool - Creating a connection object version 1.0.3")
             # Need to wrap the vSphere connection object in another object. The generic connection pooler will preserve
             # the object reference for the connection, which means it cannot "reconnect" by creating an entirely new connection
             # object.  Instead by wrapping it in a Hash, the Hash object reference itself never changes but the content of the
@@ -574,10 +574,6 @@ module Vmpooler
           connection_pool_object[:connection] = connect_to_vcd unless cloudapi_check_session(connection_pool_object[:connection])
           logger.log('d', "CJS Ensured connection to vCD: #{connection_pool_object[:connection].inspect}")
           connection_pool_object[:connection]
-        end
-
-        def vcd_connection_ok?(connection)
-          cloudapi_check_session(connection)
         end
 
         def connect_to_vcd
@@ -1188,8 +1184,8 @@ module Vmpooler
           end
         end
         def cloudapi_check_session(connection)
-          logger.log('d', "CJS Check cloudapi_sessions is still active")
-          uri = URI("#{connection['vcloud_url']}/cloudapi/1.0.0/sessions/current")
+          logger.log('d', "CJS Check cloudapi_sessions #{connection['vcloud_url']} is still active")
+          uri = URI('https://t01-s01-vcd01.s01.t01.1p.kpn.com/cloudapi/1.0.0/sessions/current')
           request = Net::HTTP::Get.new(uri)
           request['Accept'] = "application/*;version=#{connection['api_version']}"
           request['Authorization'] = "Bearer #{connection['session_token']}"
