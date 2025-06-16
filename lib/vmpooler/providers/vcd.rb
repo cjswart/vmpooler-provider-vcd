@@ -39,7 +39,7 @@ module Vmpooler
             # object.  Instead by wrapping it in a Hash, the Hash object reference itself never changes but the content of the
             # Hash can change, and is preserved across invocations.
             new_conn = connect_to_vcd
-            logger.log('d', "[#{new_conn}] connection object")
+            logger.log('d', "CJS #{new_conn} connection object")
             { connection: new_conn }
           end
           @provider_hosts = {}
@@ -319,14 +319,12 @@ module Vmpooler
         def create_vm(pool_name, new_vmname)
           pool = pool_config(pool_name)
           logger.log('d', "[+] [#{pool_name}] creating VM '#{new_vmname}'")
+          logger.log('d', "CJS connection_pool: #{@connection_pool}.inspect}")
           @connection_pool.with_metrics do |pool_object|
             connection = ensured_vcd_connection(pool_object)
-            logger.log('d', "CJS connection_pool: #{connection}.inspect}")
-            vapp = nil
-            vapp = cloudapi_vapp(pool, connection)
+            logger.log('d', "CJS connection: #{connection}")
           end
-          vapp = "do not raise an error"
-          sleep(5) # Give time for the logger to flush
+          vapp = cloudapi_vapp(pool, connection)
           raise("CJS Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
 
           vm_hash = nil
