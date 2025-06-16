@@ -430,7 +430,7 @@ module Vmpooler
 
         def create_disk(pool_name, vm_name, disk_size)
           pool = pool_config(pool_name)
-          raise("Pool #{pool_name} does not exist for the provider #{name}") if pool.nil?
+          raise("CJS -create-disk- Pool #{pool_name} does not exist for the provider #{name}") if pool.nil?
 
           datastore_name = pool['datastore']
           raise("Pool #{pool_name} does not have a datastore defined for the provider #{name}") if datastore_name.nil?
