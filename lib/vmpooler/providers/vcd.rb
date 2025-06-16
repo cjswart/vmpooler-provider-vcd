@@ -321,7 +321,7 @@ module Vmpooler
           @connection_pool.with_metrics do |pool_object|
             connection = ensured_vcd_connection(pool_object)
             vapp = nil
-            vapp = {name: pool['name'], template: pool['template'], network: pool['network']}
+            # vapp = {name: pool['name'], template: pool['template'], network: pool['network']}
           end
           logger.log('d', "[CJS-vapp] [#{pool_name}] vApp #{vapp} found for VM '#{new_vmname}'")
           raise("CJS Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
