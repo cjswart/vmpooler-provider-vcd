@@ -33,13 +33,12 @@ module Vmpooler
             size: connpool_size,
             timeout: connpool_timeout
           ) do
-            logger.log('d', "[#{name}] CJS Connection Pool - Creating a connection object version 1.0.0")
+            logger.log('d', "[#{name}] CJS Connection Pool - Creating a connection object version 1.0.1")
             # Need to wrap the vSphere connection object in another object. The generic connection pooler will preserve
             # the object reference for the connection, which means it cannot "reconnect" by creating an entirely new connection
             # object.  Instead by wrapping it in a Hash, the Hash object reference itself never changes but the content of the
             # Hash can change, and is preserved across invocations.
             new_conn = connect_to_vcd
-            logger.log('d', "CJS #{new_conn} connection object version 1.0.0")
             { connection: new_conn }
           end
           @provider_hosts = {}
@@ -319,12 +318,13 @@ module Vmpooler
         def create_vm(pool_name, new_vmname)
           pool = pool_config(pool_name)
           logger.log('d', "[+] [#{pool_name}] creating VM '#{new_vmname}'")
-          logger.log('d', "CJS connection_pool: #{@connection_pool}.inspect}")
-          @connection_pool.with_metrics do |pool_object|
-            connection = ensured_vcd_connection(pool_object)
-            logger.log('d', "CJS connection: #{connection}")
-          end
-          vapp = cloudapi_vapp(pool, connection)
+          # logger.log('d', "CJS connection_pool: #{@connection_pool}.inspect}")
+          # @connection_pool.with_metrics do |pool_object|
+            # connection = ensured_vcd_connection(pool_object)
+            # logger.log('d', "CJS connection: #{connection}")
+          # end
+          # vapp = cloudapi_vapp(pool, connection)
+          vapp = nil
           raise("CJS Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
 
           vm_hash = nil
@@ -1190,11 +1190,11 @@ module Vmpooler
             nil
           end
         end
-        def cloudapi_login(pool, connection)
-          vapp_name = pool['vapp']
-          vapp_name = pool['name'] if vapp_name.nil? || vapp_name.empty?
-          logger.log('d', "CJS Checking en Creating vapp #{vapp_name} with template #{pool['template']} in vCD")
-        end
+        # def cloudapi_login(pool, connection)
+          # vapp_name = pool['vapp']
+          # vapp_name = pool['name'] if vapp_name.nil? || vapp_name.empty?
+          # logger.log('d', "CJS Checking en Creating vapp #{vapp_name} with template #{pool['template']} in vCD")
+        # end
       end
     end
   end
