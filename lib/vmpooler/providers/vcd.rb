@@ -33,7 +33,7 @@ module Vmpooler
             size: connpool_size,
             timeout: connpool_timeout
           ) do
-            logger.log('d', "[#{name}] CJS Connection Pool - Creating a connection object version 1.0.3")
+            logger.log('d', "[#{name}] CJS Connection Pool - Creating a connection object version 4")
             # Need to wrap the vSphere connection object in another object. The generic connection pooler will preserve
             # the object reference for the connection, which means it cannot "reconnect" by creating an entirely new connection
             # object.  Instead by wrapping it in a Hash, the Hash object reference itself never changes but the content of the
@@ -318,17 +318,16 @@ module Vmpooler
         def create_vm(pool_name, new_vmname)
           pool = pool_config(pool_name)
           logger.log('d', "[+] [#{pool_name}] creating VM '#{new_vmname}'")
-          logger.log('d', "CJS connection_pool: #{@connection_pool}.inspect}")
           @connection_pool.with_metrics do |pool_object|
             connection = ensured_vcd_connection(pool_object)
-            logger.log('d', "CJS connection: #{connection}")
+            vapp = nil
+            vapp = cloudapi_vapp(pool, connection)
           end
-          # vapp = cloudapi_vapp(pool, connection)
-          vapp = nil
+
           raise("CJS Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
 
           vm_hash = nil
-          vm_hash
+          vm_hash = { name: new_vmname, pool: pool_name, status: 'creating' }
         end
 
         # The inner method requires vmware tools running in the guest os
@@ -1185,7 +1184,7 @@ module Vmpooler
         end
         def cloudapi_check_session(connection)
           logger.log('d', "CJS Check cloudapi_sessions #{connection[:vcloud_url]} is still active")
-          uri = URI('https://t01-s01-vcd01.s01.t01.1p.kpn.com/cloudapi/1.0.0/sessions/current')
+          uri = URI("#{connection[:vcloud_url]}/cloudapi/1.0.0/sessions/current")
           request = Net::HTTP::Get.new(uri)
           request['Accept'] = "application/*;version=#{connection[:api_version]}"
           request['Authorization'] = "Bearer #{connection[:session_token]}"
@@ -1202,11 +1201,12 @@ module Vmpooler
             false
           end
         end
-        # def cloudapi_login(pool, connection)
-          # vapp_name = pool['vapp']
-          # vapp_name = pool['name'] if vapp_name.nil? || vapp_name.empty?
-          # logger.log('d', "CJS Checking en Creating vapp #{vapp_name} with template #{pool['template']} in vCD")
-        # end
+        def cloudapi_login(pool, connection)
+          vapp_name = pool['vapp']
+          vapp_name = pool['name'] if vapp_name.nil? || vapp_name.empty?
+          logger.log('d', "CJS Checking en Creating vapp #{vapp_name} with template #{pool['template']} in vCD")
+          vapp = {name: vapp_name, template: pool['template'], network: pool['network']}
+        end
       end
     end
   end
