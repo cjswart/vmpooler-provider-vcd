@@ -571,16 +571,13 @@ module Vmpooler
         DISK_MODE = 'persistent'
 
         def ensured_vcd_connection(connection_pool_object)
-          #connection_pool_object[:connection] = connect_to_vcd unless vcd_connection_ok?(connection_pool_object[:connection])
+          connection_pool_object[:connection] = connect_to_vcd unless cloudapi_check_session(connection_pool_object[:connection])
           logger.log('d', "CJS Ensured connection to vCD: #{connection_pool_object[:connection].inspect}")
           connection_pool_object[:connection]
         end
 
         def vcd_connection_ok?(connection)
-          _result = connection.serviceInstance.CurrentTime
-          true
-        rescue StandardError
-          false
+          cloudapi_check_session(connection)
         end
 
         def connect_to_vcd
@@ -1188,6 +1185,25 @@ module Vmpooler
           else
             logger.log('d', "[#{name}] Connection Pool - authentication failed to vCD #{vcloud_url} with API version #{api_version}")
             nil
+          end
+        end
+        def cloudapi_check_session(connection)
+          logger.log('d', "CJS Check cloudapi_sessions is still active")
+          uri = URI("#{connection['vcloud_url']}/cloudapi/1.0.0/sessions/current")
+          request = Net::HTTP::Get.new(uri)
+          request['Accept'] = "application/*;version=#{connection['api_version']}"
+          request['Authorization'] = "Bearer #{connection['session_token']}"
+
+          response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
+            http.request(request)
+          end
+
+          if response.is_a?(Net::HTTPSuccess)
+            logger.log('d', "CJS cloudapi_sessions still active")
+            true
+          else
+            logger.log('d', ""CJS cloudapi_session NOT ACTIVE"")
+            false
           end
         end
         # def cloudapi_login(pool, connection)
