@@ -321,9 +321,10 @@ module Vmpooler
           @connection_pool.with_metrics do |pool_object|
             connection = ensured_vcd_connection(pool_object)
             vapp = nil
-            # vapp = {name: pool['name'], template: pool['template'], network: pool['network']}
+            vapp = cloudapi_vapp(pool, connection)
           end
           logger.log('d', "[CJS-vapp] [#{pool_name}] vApp #{vapp} found for VM '#{new_vmname}'")
+          vapp =nil
           raise("CJS Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
 
           vm_hash = nil
@@ -1201,7 +1202,7 @@ module Vmpooler
             false
           end
         end
-        def cloudapi_login(pool, connection)
+        def cloudapi_vapp(pool, connection)
           vapp_name = pool['vapp']
           vapp_name = pool['name'] if vapp_name.nil? || vapp_name.empty?
           logger.log('d', "CJS Checking en Creating vapp #{vapp_name} with template #{pool['template']} in vCD")
