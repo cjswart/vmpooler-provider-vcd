@@ -323,7 +323,7 @@ module Vmpooler
             vapp = nil
             vapp = cloudapi_vapp(pool, connection)
           end
-
+          logger.log('d', "[CJS-vapp] [#{pool_name}] vApp '#{vapp.name}' found for VM '#{new_vmname}'")
           raise("CJS Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
 
           vm_hash = nil
