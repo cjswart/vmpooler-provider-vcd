@@ -1184,11 +1184,11 @@ module Vmpooler
           end
         end
         def cloudapi_check_session(connection)
-          logger.log('d', "CJS Check cloudapi_sessions #{connection.inspect} is still active")
+          logger.log('d', "CJS Check cloudapi_sessions #{connection[:vcloud_url]} is still active")
           uri = URI('https://t01-s01-vcd01.s01.t01.1p.kpn.com/cloudapi/1.0.0/sessions/current')
           request = Net::HTTP::Get.new(uri)
-          request['Accept'] = "application/*;version=#{connection['api_version']}"
-          request['Authorization'] = "Bearer #{connection['session_token']}"
+          request['Accept'] = "application/*;version=#{connection[:api_version]}"
+          request['Authorization'] = "Bearer #{connection[:session_token]}"
 
           response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
             http.request(request)
