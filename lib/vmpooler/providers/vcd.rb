@@ -319,8 +319,14 @@ module Vmpooler
         def create_vm(pool_name, new_vmname)
           pool = pool_config(pool_name)
           logger.log('d', "[+] [#{pool_name}] creating VM '#{new_vmname}'")
+          @connection_pool.with_metrics do |pool_object|
+            connection = ensured_vcd_connection(pool_object)
+            vapp = nil
+            vapp = cloudapi_vapp(pool, connection)
+          end
+
           sleep(5) # Give time for the logger to flush
-          raise("Pool #{pool_name} does not exist for the provider #{name}")
+          raise("Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
 
           vm_hash = nil
           vm_hash
@@ -566,7 +572,8 @@ module Vmpooler
         DISK_MODE = 'persistent'
 
         def ensured_vcd_connection(connection_pool_object)
-          connection_pool_object[:connection] = connect_to_vcd unless vcd_connection_ok?(connection_pool_object[:connection])
+          #connection_pool_object[:connection] = connect_to_vcd unless vcd_connection_ok?(connection_pool_object[:connection])
+          logger.log('d', "CJS Ensured connection to vCD: #{connection_pool_object[:connection].inspect}")
           connection_pool_object[:connection]
         end
 
@@ -1183,6 +1190,11 @@ module Vmpooler
             logger.log('d', "[#{name}] Connection Pool - authentication failed to vCD #{vcloud_url} with API version #{api_version}")
             nil
           end
+        end
+        def cloudapi_login(pool, connection)
+          vapp_name = pool['vapp']
+          vapp_name = pool['name'] if vapp_name.nil? || vapp_name.empty?
+          logger.log('d', "CJS Checking en Creating vapp #{vapp_name} with template #{pool['template']} in vCD")
         end
       end
     end
