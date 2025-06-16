@@ -321,12 +321,13 @@ module Vmpooler
           logger.log('d', "[+] [#{pool_name}] creating VM '#{new_vmname}'")
           @connection_pool.with_metrics do |pool_object|
             connection = ensured_vcd_connection(pool_object)
+            logger.log('d', "CJS connection_pool: #{connection}.inspect}")
             vapp = nil
             vapp = cloudapi_vapp(pool, connection)
           end
-
+          vapp = "do not raise an error"
           sleep(5) # Give time for the logger to flush
-          raise("Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
+          raise("CJS Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
 
           vm_hash = nil
           vm_hash
