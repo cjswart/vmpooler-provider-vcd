@@ -348,9 +348,9 @@ module Vmpooler
             # return vm_hash['ip']
           # end
           vm_hash = {
-            'name' =>  new_vmname,
-            'hostname' => new_vmname,
-            'template' => pool['template'],
+            'name' =>  vm_name,
+            'hostname' => vm_name,
+            'template' => 'M_Ubuntu20',
             'poolname' => pool_name,
             'boottime' =>  Time.now.utc.iso8601,
             'powerstate' => 'ready',
