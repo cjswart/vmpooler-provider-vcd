@@ -33,7 +33,7 @@ module Vmpooler
             size: connpool_size,
             timeout: connpool_timeout
           ) do
-            logger.log('d', "[#{name}] CJS Connection Pool - Creating a connection object version 1.0.5")
+            logger.log('d', "[#{name}] CJS Connection Pool - Creating a connection object version 1.0.6")
             # Need to wrap the vSphere connection object in another object. The generic connection pooler will preserve
             # the object reference for the connection, which means it cannot "reconnect" by creating an entirely new connection
             # object.  Instead by wrapping it in a Hash, the Hash object reference itself never changes but the content of the
@@ -324,7 +324,7 @@ module Vmpooler
             vapp = cloudapi_vapp(pool, connection)
           end
           logger.log('d', "[CJS-vapp] [#{pool_name}] vApp #{vapp} found for VM '#{new_vmname}'")
-          vapp =nil
+          vapp = nil
           raise("CJS Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
 
           vm_hash = nil
@@ -572,7 +572,6 @@ module Vmpooler
 
         def ensured_vcd_connection(connection_pool_object)
           connection_pool_object[:connection] = connect_to_vcd unless cloudapi_check_session(connection_pool_object[:connection])
-          logger.log('d', "CJS Ensured connection to vCD: #{connection_pool_object[:connection].inspect}")
           connection_pool_object[:connection]
         end
 
@@ -1205,7 +1204,10 @@ module Vmpooler
         def cloudapi_vapp(pool, connection)
           vapp_name = pool['vapp']
           vapp_name = pool['name'] if vapp_name.nil? || vapp_name.empty?
-          logger.log('d', "CJS Checking en Creating vapp #{vapp_name} with template #{pool['template']} in vCD")
+          logger.log('d', "CJS Checking en Creating vapp #{vapp_name} in vdc")
+          # check vapp exists
+          #true return
+          #false create vapp
           vapp = {name: vapp_name, template: pool['template'], network: pool['network']}
         end
       end
