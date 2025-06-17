@@ -325,18 +325,19 @@ module Vmpooler
             vapp = nil
             vapp = cloudapi_vapp(pool, connection)
             raise("CJS Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
-
+            vm_hash = {
+              'name' =>  new_vmname,
+              'hostname' => new_vmname,
+              'template' => pool['template'],
+              'poolname' => pool_name,
+              'boottime' =>  Time.now.utc.iso8601,
+              'powerstate' => 'ready',
+              'ip' => '10.1.1.10'
+            }
           end
-
-          vm_hash = {
-            'name' =>  new_vmname,
-            'hostname' => new_vmname,
-            'template' => pool['template'],
-            'poolname' => pool_name,
-            'boottime' =>  Time.now.utc.iso8601,
-            'powerstate' => 'ready',
-            'ip' => '10.1.1.10'
-          }
+          # Return the VM hash
+          vm_hash
+        end
 
         # The inner method requires vmware tools running in the guest os
         def get_vm_ip_address(vm_name, pool_name)
