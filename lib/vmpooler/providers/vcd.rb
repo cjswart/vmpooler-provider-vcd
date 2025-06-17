@@ -317,19 +317,26 @@ module Vmpooler
 
         def create_vm(pool_name, new_vmname)
           pool = pool_config(pool_name)
-          logger.log('d', "[+] [#{pool_name}] creating VM '#{new_vmname}'")
+          raise("Pool #{pool_name} does not exist for the provider #{name}") if pool.nil?
+
+          vm_hash = nil
           @connection_pool.with_metrics do |pool_object|
             connection = ensured_vcd_connection(pool_object)
             vapp = nil
             vapp = cloudapi_vapp(pool, connection)
-            logger.log('d', "[CJS-vapp] [#{pool_name}] vApp #{vapp} found for VM '#{new_vmname}'")
-          end
-          vapp = nil
-          raise("CJS Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
+            raise("CJS Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
 
-          vm_hash = nil
-          vm_hash = { name: new_vmname, pool: pool_name, status: 'creating' }
-        end
+          end
+
+          vm_hash = {
+            'name' =>  new_vmname,
+            'hostname' => new_vmname,
+            'template' => pool['template'],
+            'poolname' => pool_name,
+            'boottime' =>  Time.now.utc.iso8601,
+            'powerstate' => 'ready',
+            'ip' => '10.1.1.10'
+          }
 
         # The inner method requires vmware tools running in the guest os
         def get_vm_ip_address(vm_name, pool_name)
@@ -1208,7 +1215,7 @@ module Vmpooler
           # check vapp exists
           #true return
           #false create vapp
-          vapp = {name: vapp_name, template: pool['template'], network: pool['network']}
+          vapp = {name: vapp_name, network: pool['network']}
         end
       end
     end
