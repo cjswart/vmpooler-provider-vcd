@@ -33,7 +33,7 @@ module Vmpooler
             size: connpool_size,
             timeout: connpool_timeout
           ) do
-            logger.log('d', "[#{name}] CJS Connection Pool - Creating a connection object version 1.0.6")
+            logger.log('d', "[#{name}] CJS Connection Pool - Creating a connection object version 1.0.7")
             # Need to wrap the vSphere connection object in another object. The generic connection pooler will preserve
             # the object reference for the connection, which means it cannot "reconnect" by creating an entirely new connection
             # object.  Instead by wrapping it in a Hash, the Hash object reference itself never changes but the content of the
@@ -322,8 +322,8 @@ module Vmpooler
             connection = ensured_vcd_connection(pool_object)
             vapp = nil
             vapp = cloudapi_vapp(pool, connection)
+            logger.log('d', "[CJS-vapp] [#{pool_name}] vApp #{vapp} found for VM '#{new_vmname}'")
           end
-          logger.log('d', "[CJS-vapp] [#{pool_name}] vApp #{vapp} found for VM '#{new_vmname}'")
           vapp = nil
           raise("CJS Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
 
