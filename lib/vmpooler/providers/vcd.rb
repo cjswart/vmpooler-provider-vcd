@@ -341,12 +341,23 @@ module Vmpooler
 
         # The inner method requires vmware tools running in the guest os
         def get_vm_ip_address(vm_name, pool_name)
-          @connection_pool.with_metrics do |pool_object|
-            connection = ensured_vcd_connection(pool_object)
-            vm_object = find_vm(pool_name, vm_name, connection)
-            vm_hash = generate_vm_hash(vm_object, pool_name)
-            return vm_hash['ip']
-          end
+          # @connection_pool.with_metrics do |pool_object|
+            # connection = ensured_vcd_connection(pool_object)
+            # vm_object = find_vm(pool_name, vm_name, connection)
+            # vm_hash = generate_vm_hash(vm_object, pool_name)
+            # return vm_hash['ip']
+          # end
+          vm_hash = {
+            'name' =>  new_vmname,
+            'hostname' => new_vmname,
+            'template' => pool['template'],
+            'poolname' => pool_name,
+            'boottime' =>  Time.now.utc.iso8601,
+            'powerstate' => 'ready',
+            'ip' => '10.1.1.10'
+          }
+          return vm_hash['ip']
+
         end
 
         def create_config_spec(vm_name, template_name, extra_config)
