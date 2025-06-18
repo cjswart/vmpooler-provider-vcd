@@ -34,7 +34,7 @@ module Vmpooler
             size: connpool_size,
             timeout: connpool_timeout
           ) do
-            logger.log('d', "[#{name}] CJS Connection Pool - Creating a connection object version 1.0.8")
+            logger.log('d', "[#{name}] CJS Connection Pool - Creating a connection object version 1.0.9")
             # Need to wrap the vSphere connection object in another object. The generic connection pooler will preserve
             # the object reference for the connection, which means it cannot "reconnect" by creating an entirely new connection
             # object.  Instead by wrapping it in a Hash, the Hash object reference itself never changes but the content of the
