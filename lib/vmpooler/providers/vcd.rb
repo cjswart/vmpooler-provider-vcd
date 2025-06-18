@@ -1224,10 +1224,46 @@ module Vmpooler
           vapp_name = pool['vapp']
           vapp_name = pool['name'] if vapp_name.nil? || vapp_name.empty?
           logger.log('d', "CJS Checking en Creating vapp #{vapp_name} in vdc")
-          # check vapp exists
-          #true return
-          #false create vapp
-          vapp = {name: vapp_name, network: pool['network']}
+          query_url = "#{VCLOUD_URL}/api/query?type=vApp&format=records&filter=name==#{vapp_name}"
+
+          uri = URI(query_url)
+          vapp_response = Net::HTTP.get_response(uri, headers)
+
+          if vapp_response.code.to_i == 200
+            vapp = {name: vapp_name, network: pool['network']}
+          else
+            # create vapp
+            uri = URI("#{VCLOUD_URL}/action/composeVApp")
+            request = Net::HTTP::Post.new(uri)
+            request['Accept'] = headers['Accept']
+            request['Authorization'] = headers['Authorization']
+            xml_body = <<~XML
+              <ComposeVAppParams
+                  xmlns="http://www.vmware.com/vcloud/v1.5"
+                  name="#{vapp_name}"
+                  deploy="true"
+                  powerOn="false">
+                <Description>"vap for vmpooler pool #{vapp_name}"</Description>
+                <InstantiationParams>
+                  <!-- Optional: Add network or other instantiation parameters here -->
+                </InstantiationParams>
+                <!-- Add more <SourcedItem> blocks for additional VMs or templates -->
+                <AllEULAsAccepted>true</AllEULAsAccepted>
+              </ComposeVAppParams>
+            XML
+            request.body = xml_body
+            request.content_type = 'application/vnd.vmware.vcloud.composeVAppParams+xml'
+            response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
+              http.request(request)
+            end
+            if response.is_a?(Net::HTTPSuccess)
+              logger.log('d', "CJS VApp '#{vapp_name}' created successfully.")
+              vapp = {name: vapp_name, network: pool['network']}
+            else
+              logger.log('d', "CJS Failed to create VApp: #{response.code} #{response.message}")
+              vapp = nil
+            end
+          end
         end
       end
     end
