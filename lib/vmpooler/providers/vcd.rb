@@ -1223,16 +1223,18 @@ module Vmpooler
         def cloudapi_vapp(pool, connection)
           vapp_name = pool['vapp']
           vapp_name = pool['name'] if vapp_name.nil? || vapp_name.empty?
-          logger.log('d', "CJS Checking en Creating vapp #{vapp_name} in vdc")
+          logger.log('d', "[CJS] Checking Creating vapp #{vapp_name} in vdc")
           query_url = "#{VCLOUD_URL}/api/query?type=vApp&format=records&filter=name==#{vapp_name}"
 
           uri = URI(query_url)
           vapp_response = Net::HTTP.get_response(uri, headers)
 
           if vapp_response.code.to_i == 200
+            logger.log('d', "[CJS] vapp #{vapp_name} already exists in vdc")
             vapp = {name: vapp_name, network: pool['network']}
           else
             # create vapp
+            logger.log('d', "[CJS] Creating vapp #{vapp_name} in vdc")
             uri = URI("#{VCLOUD_URL}/action/composeVApp")
             request = Net::HTTP::Post.new(uri)
             request['Accept'] = headers['Accept']
