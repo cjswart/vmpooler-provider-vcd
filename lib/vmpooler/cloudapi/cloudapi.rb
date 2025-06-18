@@ -18,7 +18,7 @@ class CloudAPI
       http.request(request)
     end
     if response.is_a?(Net::HTTPSuccess)
-      Vmpooler.Logger.log('d', "[#{name}] Connection Pool - succesfull authenticated to vCD #{vcloud_url} with API version #{api_version}")
+      Logger.log('d', "[#{name}] Connection Pool - succesfull authenticated to vCD #{vcloud_url} with API version #{api_version}")
       connection = {
         vcloud_url: vcloud_url,
         api_version: api_version,
@@ -27,12 +27,12 @@ class CloudAPI
       }
       connection
     else
-      Vmpooler.Logger.log('d', "[#{name}] Connection Pool - authentication failed to vCD #{vcloud_url} with API version #{api_version}")
+      Logger.log('d', "[#{name}] Connection Pool - authentication failed to vCD #{vcloud_url} with API version #{api_version}")
       nil
     end
   end
   def self.cloudapi_check_session(connection)
-    Vmpooler.Logger.log('d', "[CJS] Check cloudapi_sessions #{connection[:vcloud_url]} is still active")
+    Logger.log('d', "[CJS] Check cloudapi_sessions #{connection[:vcloud_url]} is still active")
     uri = URI("#{connection[:vcloud_url]}/cloudapi/1.0.0/sessions/current")
     request = Net::HTTP::Get.new(uri)
     request['Accept'] = "application/*;version=#{connection[:api_version]}"
@@ -41,26 +41,26 @@ class CloudAPI
       http.request(request)
     end
     if response.is_a?(Net::HTTPSuccess)
-      Vmpooler.Logger.log('d', "[CJS] cloudapi_sessions still active")
+      Logger.log('d', "[CJS] cloudapi_sessions still active")
       true
     else
-      Vmpooler.Logger.log('d', "[CJS] cloudapi_session NOT ACTIVE")
+      Logger.log('d', "[CJS] cloudapi_session NOT ACTIVE")
       false
     end
   end
   def self.cloudapi_vapp(pool, connection)
     vapp_name = pool['vapp']
     vapp_name = pool['name'] if vapp_name.nil? || vapp_name.empty?
-    Vmpooler.Logger.log('d', "[CJS] Checking vapp #{vapp_name} in vdc")
+    Logger.log('d', "[CJS] Checking vapp #{vapp_name} in vdc")
     query_url = "#{connection[:vcloud_url]}/api/query?type=vApp&format=records&filter=name==#{vapp_name}"
     uri = URI(query_url)
     vapp_response = Net::HTTP.get_response(uri, headers)
     if vapp_response.code.to_i == 200
-      Vmpooler.Logger.log('d', "[CJS] vapp #{vapp_name} already exists in vdc")
+      Logger.log('d', "[CJS] vapp #{vapp_name} already exists in vdc")
       vapp = {name: vapp_name, network: pool['network']}
     else
       # create vapp
-      Vmpooler.Logger.log('d', "[CJS] Creating vapp #{vapp_name} in vdc")
+      Logger.log('d', "[CJS] Creating vapp #{vapp_name} in vdc")
       uri = URI("#{connection[:vcloud_url]}/action/composeVApp")
       request = Net::HTTP::Post.new(uri)
       request['Accept'] = headers['Accept']
@@ -85,10 +85,10 @@ class CloudAPI
         http.request(request)
       end
       if response.is_a?(Net::HTTPSuccess)
-        Vmpooler.Logger.log('d', "[CJS] VApp '#{vapp_name}' created successfully.")
+        Logger.log('d', "[CJS] VApp '#{vapp_name}' created successfully.")
         vapp = {name: vapp_name, network: pool['network']}
       else
-        Vmpooler.Logger.log('d', "[CJS] Failed to create VApp: #{response.code} #{response.message}")
+        Logger.log('d', "[CJS] Failed to create VApp: #{response.code} #{response.message}")
         vapp = nil
       end
     end
