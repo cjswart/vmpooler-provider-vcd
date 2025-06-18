@@ -63,8 +63,8 @@ class CloudAPI
       Logger.log('d', "[CJS] Creating vapp #{vapp_name} in vdc")
       uri = URI("#{connection[:vcloud_url]}/action/composeVApp")
       request = Net::HTTP::Post.new(uri)
-      request['Accept'] = headers['Accept']
-      request['Authorization'] = headers['Authorization']
+      request['Accept'] = "application/*+json;version=#{connection[:api_version]}"
+      request['Authorization'] = "Bearer #{connection[:session_token]}"
       xml_body = <<~XML
         <ComposeVAppParams
             xmlns="http://www.vmware.com/vcloud/v1.5"

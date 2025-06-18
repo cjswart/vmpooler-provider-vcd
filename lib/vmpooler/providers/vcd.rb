@@ -324,7 +324,7 @@ module Vmpooler
           @connection_pool.with_metrics do |pool_object|
             connection = ensured_vcd_connection(pool_object)
             vapp = nil
-            vapp = CloudAPI.cloudapi_vapp(pool, connection)
+            vapp = CloudAPI.cloudapi_vapp(pool, connection, headers)
             raise("CJS Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
             vm_hash = {
               'name' =>  new_vmname,
