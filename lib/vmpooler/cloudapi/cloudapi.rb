@@ -54,6 +54,10 @@ class CloudAPI
     Logger.log('d', "[CJS] Checking vapp #{vapp_name} in vdc")
     query_url = "#{connection[:vcloud_url]}/api/query?type=vApp&format=records&filter=name==#{vapp_name}"
     uri = URI(query_url)
+    headers = {
+      'Accept' => "application/*+json;version=#{connection[:api_version]}",
+      'Authorization' => "Bearer #{connection[:session_token]}"
+    }
     vapp_response = Net::HTTP.get_response(uri, headers)
     if vapp_response.code.to_i == 200
       Logger.log('d', "[CJS] vapp #{vapp_name} already exists in vdc")
