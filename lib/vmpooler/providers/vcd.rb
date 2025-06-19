@@ -601,6 +601,8 @@ module Vmpooler
           try = 1
           begin
             connection = CloudAPI.cloudapi_login(provider_config['vcloud_url'],provider_config['auth_encoded'], provider_config['api_version'])
+            connection[:vdc_href] = "#{provider_config['vcloud_url']}/api/vdc/#{provider_config['vdc_id']}"
+
             metrics.increment('connect.open')
             connection
           rescue StandardError => e

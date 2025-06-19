@@ -66,7 +66,8 @@ class CloudAPI
     else
       # create vapp
       Logger.log('d', "[CJS] Creating vapp #{vapp_name} in vdc")
-      uri = URI("#{connection[:vcloud_url]}/action/composeVApp")
+      uri = URI("#{connection[:vdc_href]}/action/composeVApp")
+      Logger.log('d', "[CJS]  #{connection[:vdc_href]}/action/composeVApp in vdc")
       request = Net::HTTP::Post.new(uri)
       request['Accept'] = "application/*+json;version=#{connection[:api_version]}"
       request['Authorization'] = "Bearer #{connection[:session_token]}"
