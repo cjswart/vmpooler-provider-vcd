@@ -59,7 +59,8 @@ class CloudAPI
       'Authorization' => "Bearer #{connection[:session_token]}"
     }
     vapp_response = Net::HTTP.get_response(uri, headers)
-    if vapp_response.code.to_i == 200
+    body = JSON.parse(vapp_response.body)
+    if vapp_response.code.to_i == 200 and body['total'].to_i = 1
       Logger.log('d', "[CJS] vapp #{vapp_name} already exists in vdc")
       vapp = {name: vapp_name, network: pool['network']}
     else
