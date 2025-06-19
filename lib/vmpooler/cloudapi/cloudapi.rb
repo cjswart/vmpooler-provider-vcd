@@ -19,11 +19,12 @@ class CloudAPI
     end
     if response.is_a?(Net::HTTPSuccess)
       Logger.log('d', "[#{name}] Connection Pool - succesfull authenticated to vCD #{vcloud_url} with API version #{api_version}")
+      session_token = response['X-VMWARE-VCLOUD-ACCESS-TOKEN']
       connection = {
         vcloud_url: vcloud_url,
         api_version: api_version,
         auth_encoded: auth_encoded,
-        session_token: response['X-VMWARE-VCLOUD-ACCESS-TOKEN'],
+        session_token: response['X-VMWARE-VCLOUD-ACCESS-TOKEN']
       }
       connection
     else
@@ -48,21 +49,30 @@ class CloudAPI
       false
     end
   end
-  def self.cloudapi_vapp(pool, connection)
-    vapp_name = pool['vapp']
-    vapp_name = pool['name'] if vapp_name.nil? || vapp_name.empty?
-    Logger.log('d', "[CJS] Checking vapp #{vapp_name} in vdc")
+  def self.check_vapp_exists(vapp_name, connection)
     query_url = "#{connection[:vcloud_url]}/api/query?type=vApp&format=records&filter=name==#{vapp_name}"
     uri = URI(query_url)
     headers = {
       'Accept' => "application/*+json;version=#{connection[:api_version]}",
       'Authorization' => "Bearer #{connection[:session_token]}"
     }
-    vapp_response = Net::HTTP.get_response(uri, headers)
-    body = JSON.parse(vapp_response.body)
-    if vapp_response.code.to_i == 200 and body['total'].to_i == 1
+    Net::HTTP.get_response(uri, headers)
+  end
+  def self.cloudapi_vapp(pool, connection)
+    vapp_name = pool['vapp']
+    vapp_name = pool['name'] if vapp_name.nil? || vapp_name.empty?
+    Logger.log('d', "[CJS] Checking vapp #{vapp_name} in vdc")
+
+    vapp_response = check_vapp_exists(vapp_name, connection)
+    vapp_response_body = JSON.parse(vapp_response.body)
+
+    if vapp_response.code.to_i == 200 and vapp_response_body['total'].to_i == 1
       Logger.log('d', "[CJS] vapp #{vapp_name} already exists in vdc")
-      vapp = {name: vapp_name, network: pool['network']}
+      vapp = {
+        name: vapp_response_body['record'][0]['name'],
+        href: vapp_response_body['record'][0]['href']
+      }
+      vapp
     else
       # create vapp
       Logger.log('d', "[CJS] Creating vapp #{vapp_name} in vdc")
@@ -76,8 +86,8 @@ class CloudAPI
             xmlns="http://www.vmware.com/vcloud/v1.5"
             name="#{vapp_name}"
             deploy="true"
-            powerOn="false">
-          <Description>"vap for vmpooler pool #{vapp_name}"</Description>
+            powerOn="true">
+          <Description>"VApp for vmpooler pool #{vapp_name}"</Description>
           <InstantiationParams>
             <!-- Optional: Add network or other instantiation parameters here -->
           </InstantiationParams>
@@ -92,10 +102,21 @@ class CloudAPI
       end
       if response.is_a?(Net::HTTPSuccess)
         Logger.log('d', "[CJS] VApp '#{vapp_name}' created successfully.")
-        vapp = {name: vapp_name, network: pool['network']}
+        vapp_response = check_vapp_exists(vapp_name, connection)
+        vapp_response_body = JSON.parse(vapp_response.body)
+        if vapp_response.code.to_i == 200 and vapp_response_body['total'].to_i == 1
+          vapp = {
+            name: vapp_response_body['record'][0]['name'],
+            href: vapp_response_body['record'][0]['href']
+          }
+          vapp
+        else
+          Logger.log('d', "[CJS] Failed to retrieve vApp details after creation.")
+          nil
+        end
       else
         Logger.log('d', "[CJS] Failed to create VApp: #{response.code} #{response.message}")
-        vapp = nil
+        nil
       end
     end
   end
