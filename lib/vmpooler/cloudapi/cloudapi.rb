@@ -6,7 +6,6 @@ class Logger
 end
 class CloudAPI
   def self.cloudapi_login(vcloud_url,auth_encoded,api_version)
-    Logger.log('d', "[#{name}] Connection Pool - authenticating to vCD #{vcloud_url} with API version #{api_version} auth_coded #{auth_encoded}")
     uri = URI("#{vcloud_url}/cloudapi/1.0.0/sessions")
     request = Net::HTTP::Post.new(uri)
     request['Accept'] = "application/*;version=#{api_version}"
@@ -72,7 +71,7 @@ class CloudAPI
         name: vapp_response_body['record'][0]['name'],
         href: vapp_response_body['record'][0]['href']
       }
-      vapp
+      return vapp
     else
       # create vapp
       Logger.log('d', "[CJS] Creating vapp #{vapp_name} in vdc")
@@ -90,6 +89,28 @@ class CloudAPI
           <Description>"VApp for vmpooler pool #{vapp_name}"</Description>
           <InstantiationParams>
             <!-- Optional: Add network or other instantiation parameters here -->
+            <NetworkConfigSection>
+              <ovf:Info xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1">VApp info</ovf:Info>
+              <NetworkConfig networkName="#{pool['network']}">
+                <Configuration>
+                  <IpScopes>
+                    <IpScope>
+                      <IsInherited>true</IsInherited>
+                      <Gateway>10.77.179.1</Gateway>
+                      <SubnetPrefixLength>25</SubnetPrefixLength>
+                      <Dns1/>
+                      <Dns2/>
+                      <DnsSuffix/>
+                      <IsEnabled>true</IsEnabled>
+                    </IpScope>
+                  </IpScopes>
+                  <ParentNetwork href="https://t01-s01-vcd01.s01.t01.1p.kpn.com/api/admin/network/dc44b058-be5a-4343-8de2-a640ea74d972"/>
+                  <FenceMode>bridged</FenceMode>
+                  <AdvancedNetworkingEnabled>true</AdvancedNetworkingEnabled>
+                </Configuration>
+                <IsDeployed>false</IsDeployed>
+              </NetworkConfig>
+            </NetworkConfigSection>
           </InstantiationParams>
           <!-- Add more <SourcedItem> blocks for additional VMs or templates -->
           <AllEULAsAccepted>true</AllEULAsAccepted>
@@ -109,7 +130,7 @@ class CloudAPI
             name: vapp_response_body['record'][0]['name'],
             href: vapp_response_body['record'][0]['href']
           }
-          vapp
+          return vapp
         else
           Logger.log('d', "[CJS] Failed to retrieve vApp details after creation.")
           nil
@@ -119,5 +140,176 @@ class CloudAPI
         nil
       end
     end
+  end
+  def self.get_vm(vm_name, connection, pool)
+    vm_hash = {}
+    query_url = "#{connection[:vcloud_url]}/api/query?type=vm&format=records&filter=name==#{vm_name};containerName==#{pool['vapp']}"
+    uri = URI(query_url)
+    headers = {
+      'Accept' => "application/*+json;version=#{connection[:api_version]}",
+      'Authorization' => "Bearer #{connection[:session_token]}"
+    }
+    vm_response = Net::HTTP.get_response(uri, headers)
+    vm_response_body = JSON.parse(vm_response.body) if vm_response.is_a?(Net::HTTPSuccess)
+    #puts "[CJS] VM response: #{vm_response.code} #{vm_response.message}\n#{vm_response.body}"
+    if vm_response.is_a?(Net::HTTPSuccess) and vm_response_body['total'].to_i == 1
+      vm_response_body['record'][0].each do |key, value|
+        vm_hash[key] = value
+      end
+    else
+      Logger.log('d', "[CJS] VM '#{vm_name}' not found or multiple VMs with the same name exist.")
+    end
+    return vm_hash
+  end
+  def self.check_vm_exists(vm_name, connection, pool)
+    query_url = "#{connection[:vcloud_url]}/api/query?type=vm&format=records&filter=name==#{vm_name};containerName==#{pool['vapp']}"
+    uri = URI(query_url)
+    headers = {
+      'Accept' => "application/*+json;version=#{connection[:api_version]}",
+      'Authorization' => "Bearer #{connection[:session_token]}"
+    }
+    Net::HTTP.get_response(uri, headers)
+  end
+  def self.cloudapi_get_catalog_item_href(pool, connection)
+    href = nil
+    catalog_query_url = vm_templates_query_url = "#{VCLOUD_URL}/api/query?type=vm&pageSize=1000&sortDesc=name&filter=isVAppTemplate==true;status!=FAILED_CREATION;status!=UNKNOWN;status!=UNRECOGNIZED;status!=UNRESOLVED&links=true"
+    headers = {
+      'Accept' => "application/*+json;version=#{connection[:api_version]}",
+      'Authorization' => "Bearer #{connection[:session_token]}"
+    }
+    uri = URI(catalog_query_url)
+    response = Net::HTTP.get_response(uri, headers)
+    if response.is_a?(Net::HTTPSuccess)
+      data = JSON.parse(response.body)
+      vm_templates = data['record']
+      vm_templates.each do |template|
+        if template['containerName'] == pool['template'] and template['catalogName'] == pool['catalog']
+          href = template['href']
+        end
+      end
+    end
+    if href.nil?
+      Logger.log('d', "[CJS] Cannot find VM Template: #{pool['template']} - Catalog: #{pool['catalog']}")
+    end
+    return href
+  end
+  def self.cloudapi_get_storage_policy_href(pool, connection)
+    href = nil
+    storage_query_url = "#{VCLOUD_URL}/api/query?type=orgVdcStorageProfile&filter=vdc==#{connection[:vdc_id]}&format=records"
+    headers = {
+      'Accept' => "application/*+json;version=#{connection[:api_version]}",
+      'Authorization' => "Bearer #{connection[:session_token]}"
+    }
+    uri = URI(storage_query_url)
+    response = Net::HTTP.get_response(uri, headers)
+    if response.is_a?(Net::HTTPSuccess)
+      data = JSON.parse(response.body)
+      storage_policy = data['record']
+      storage_policy.each do |policy|
+        if policy['name'] == pool['storage_policy']
+          href = policy['href']
+        end
+      end
+    end
+    if href.nil?
+      Logger.log('d', "[CJS] Cannot find Storage policy: #{pool['storage_policy']}")
+    end
+    return href
+  end
+  def self.delete_vm(vm_hash, connection)
+    poweroff_vm(vm_hash, connection) if vm_hash['status'] == 'POWERED_ON'
+    puts "[CVM] VM Href: #{vm_hash['href']}"
+    Logger.log('d', "[CVM] Deleting VM #{vm_hash['href']}")
+    uri = URI("#{vm_hash['href']}")
+    request = Net::HTTP::Delete.new(uri)
+    request['Accept'] = "application/*+json;version=#{connection[:api_version]}"
+    request['Authorization'] = "Bearer #{connection[:session_token]}"
+    request.content_type = 'application/vnd.vmware.vcloud.task+xml'
+    response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
+      http.request(request)
+    end
+    return response
+  end
+  def self.poweron_vm(vm_hash, connection)
+    Logger.log('d', "[CVM] Powering on VM '#{vm_hash['href']}'")
+    uri = URI("#{vm_hash['href']}/power/action/powerOn")
+    request = Net::HTTP::Post.new(uri)
+    request['Accept'] = "application/*+json;version=#{connection[:api_version]}"
+    request['Authorization'] = "Bearer #{connection[:session_token]}"
+    request.content_type = 'application/vnd.vmware.vcloud.powerOnParams+xml'
+    response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
+      http.request(request)
+    end
+    return response
+  end
+  def self.poweroff_vm(vm_hash, connection)
+    Logger.log('d', "[CVM] Powering off VM '#{vm_hash['href']}'")
+    uri = URI("#{vm_hash['href']}/power/action/powerOff")
+    request = Net::HTTP::Post.new(uri)
+    request['Accept'] = "application/*+json;version=#{connection[:api_version]}"
+    request['Authorization'] = "Bearer #{connection[:session_token]}"
+    request.content_type = 'application/vnd.vmware.vcloud.powerOffParams+xml'
+    response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
+      http.request(request)
+    end
+    return response
+  end
+  def self.cloudapi_create_vm(new_vmname, pool, connection, vapp)
+    vm_hash = {}
+    Logger.log('d', "[CVM] Creating VM '#{new_vmname}' in vApp '#{pool[:vapp]}'")
+    # Check if the VM already exists
+    vm_hash = get_vm(new_vmname, connection, pool)
+    if !vm_hash.empty?
+      puts "[CVM] VM #{new_vmname} already exists in vApp '#{vapp[:name]}'"
+    else
+      puts "[CVM] VM #{new_vmname} does not exist, proceeding to create it."
+      # --------------------------------------------------------------------------------------------------
+      # Check if the storage policy exists and get its href
+      os_drive_storage_tier_href = cloudapi_get_storage_policy_href(pool, connection)
+      catalogItem_href = cloudapi_get_catalog_item_href(pool, connection)
+      # Prepare the XML body for the VM creation request
+      xml_body = <<~XML
+        <root:RecomposeVAppParams xmlns:root="http://www.vmware.com/vcloud/v1.5" xmlns:ns0="http://schemas.dmtf.org/ovf/envelope/1">
+          <root:SourcedItem>
+              <root:Source href="#{catalogItem_href}"
+              name="#{new_vmname}"
+              type="application/vnd.vmware.vcloud.vm+xml"/>
+              <root:InstantiationParams>
+                 <root:NetworkConnectionSection><ns0:Info/>
+                  <root:PrimaryNetworkConnectionIndex>0</root:PrimaryNetworkConnectionIndex>
+                  <root:NetworkConnection network="#{pool['network']}">
+                    <root:NetworkConnectionIndex>0</root:NetworkConnectionIndex>
+                    <root:IpAddress/>
+                    <root:IpType>IPV4</root:IpType>
+                    <root:IsConnected>true</root:IsConnected>
+                    <root:IpAddressAllocationMode>DHCP</root:IpAddressAllocationMode>
+                    <root:NetworkAdapterType>VMXNET3</root:NetworkAdapterType>
+                  </root:NetworkConnection>
+                </root:NetworkConnectionSection>
+              </root:InstantiationParams>
+            <root:StorageProfile href="#{os_drive_storage_tier_href}" type="application/vnd.vmware.vcloud.vdcStorageProfile+xml"/>
+          </root:SourcedItem>
+          <root:AllEULAsAccepted>true</root:AllEULAsAccepted>
+        </root:RecomposeVAppParams>
+      XML
+      # Compose the API endpoint for VM instantiation
+      #uri = URI("https://t01-s01-vcd01.s01.t01.1p.kpn.com/api/vApp/vapp-aaa3ce71-4acb-4a7f-b203-143184fba23c/action/recomposeVApp")
+      uri = URI("#{vapp[:href]}/action/recomposeVApp")
+      request = Net::HTTP::Post.new(uri)
+      request['Accept'] = "application/*+json;version=#{connection[:api_version]}"
+      request['Authorization'] = "Bearer #{connection[:session_token]}"
+      request.content_type = 'application/vnd.vmware.vcloud.recomposeVAppParams+xml'
+      request.body = xml_body
+      response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
+        http.request(request)
+      end
+      if response.is_a?(Net::HTTPSuccess)
+        Logger.log('d', "[CVM] VM '#{new_vmname}' created successfully in vApp '#{pool['vapp']}'")
+      else
+        Logger.log('d', "[CVM] Failed to create VM: #{response.code} #{response.message}")
+      end
+      vm_hash = get_vm(new_vmname, connection, pool)
+    end
+    return vm_hash
   end
 end
