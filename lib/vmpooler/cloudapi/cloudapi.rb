@@ -144,19 +144,25 @@ class CloudAPI
   def self.get_vms_in_vapp(connection, pool)
     vms = []
     vapp = cloudapi_vapp(pool, connection)
-    uri = URI(vapp['href'])
-    vapp_response = Net::HTTP.get_response(uri, headers.merge('Accept' => "application/*+xml;version=#{API_VERSION}"))
+    headers = {
+      'Accept' => "application/vnd.vmware.vcloud.vm+json;version=#{connection[:api_version]}",
+      'Authorization' => "Bearer #{connection[:session_token]}"
+    }
+    uri = URI(vapp[:href])
+    vapp_response = Net::HTTP.get_response(uri, headers)
 
     if vapp_response.code.to_i != 200
       puts_red "Failed to retrieve vApp: #{vapp_response.body}"
       return []
     end
-
+    #puts "vap_response: #{vapp_response.code} #{vapp_response.message}  #{vapp_response.body}"
     root = Nokogiri::XML(vapp_response.body)
+
     namespace = 'http://www.vmware.com/vcloud/v1.5'
     vm_elements = root.xpath('//vcloud:Vm', 'vcloud' => namespace)
     vm_elements.map { |vm| vm['name'] }
   end
+
   def self.get_vm(vm_name, connection, pool)
     vm_hash = {}
     query_url = "#{connection[:vcloud_url]}/api/query?type=vm&format=records&filter=name==#{vm_name};containerName==#{pool['vapp']}"
@@ -232,7 +238,7 @@ class CloudAPI
     end
     return href
   end
-  def self.destroy_vm(vm_hash, connection)
+  def self.delete_vm(vm_hash, connection)
     poweroff_vm(vm_hash, connection) if vm_hash['status'] == 'POWERED_ON'
     puts "[CVM] VM Href: #{vm_hash['href']}"
     Logger.log('d', "[CVM] Deleting VM #{vm_hash['href']}")
@@ -244,11 +250,7 @@ class CloudAPI
     response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
       http.request(request)
     end
-    if response.is_a?(Net::HTTPSuccess)
-    return true
-    else
-      Logger.log('d', "[CVM] Failed to delete VM: #{response.code} #{response.message}")
-      return false
+    return response
   end
   def self.poweron_vm(vm_hash, connection)
     Logger.log('d', "[CVM] Powering on VM '#{vm_hash['href']}'")
