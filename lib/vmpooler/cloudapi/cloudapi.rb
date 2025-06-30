@@ -238,7 +238,7 @@ class CloudAPI
     end
     return href
   end
-  def self.delete_vm(vm_hash, connection)
+  def self.destroy_vm(vm_hash, connection)
     poweroff_vm(vm_hash, connection) if vm_hash['status'] == 'POWERED_ON'
     puts "[CVM] VM Href: #{vm_hash['href']}"
     Logger.log('d', "[CVM] Deleting VM #{vm_hash['href']}")

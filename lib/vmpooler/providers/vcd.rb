@@ -125,7 +125,7 @@ module Vmpooler
           pool = pool_config(pool_name)
           @connection_pool.with_metrics do |pool_object|
             connection = ensured_vcd_connection(pool_object)
-            vms = CloudAPI.get_vms_in_vapp(connection, pool)
+            vms = CloudAPI.get_vms_in_pool(connection, pool)
           end
           vms
         end
@@ -392,7 +392,32 @@ module Vmpooler
           # end
           # true
         # end
+        def destroy_vm_and_log(vm_name, vm_object, pool, data_ttl)
+          try = 0 if try.nil?
+          max_tries = 3
+          @redis.with_metrics do |redis|
+            redis.multi do |transaction|
+              transaction.srem("vmpooler__completed__#{pool}", vm_name)
+              transaction.hdel("vmpooler__active__#{pool}", vm_name)
+              transaction.hset("vmpooler__vm__#{vm_name}", 'destroy', Time.now.to_s)
 
+              # Auto-expire metadata key
+              transaction.expire("vmpooler__vm__#{vm_name}", (data_ttl * 60 * 60))
+            end
+          end
+
+          start = Time.now
+          destroy_vm(pool['name'], vm_name)
+          finish = format('%<time>.2f', time: Time.now - start)
+          logger.log('s', "[-] [#{pool}] '#{vm_name}' destroyed in #{finish} seconds")
+          metrics.timing("destroy.#{pool}", finish)
+        rescue RuntimeError
+          raise
+        rescue StandardError => e
+          try += 1
+          logger.log('s', "[!] [#{pool}] failed to destroy '#{vm_name}' with an error: #{e}")
+          try >= max_tries ? raise : retry
+        end
         def destroy_vm(pool_name, vm_name)
           pool = pool_config(pool_name)
           raise("Pool #{pool_name} does not exist for the provider #{name}") if pool.nil?
