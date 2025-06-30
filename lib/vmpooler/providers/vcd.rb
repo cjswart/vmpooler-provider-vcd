@@ -239,9 +239,7 @@ module Vmpooler
             connection = ensured_vcd_connection(pool_object)
             vapp = nil
             vapp = CloudAPI.cloudapi_vapp(pool, connection)
-            puts "\e[32m#{vapp.inspect}\e[0m"
             raise("CJS Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
-            puts "[CJS] vApp '#{vapp[:name]}' href is '#{vapp[:href]}'"
             # Create a new VM in the vApp
             vm_hash = CloudAPI.cloudapi_create_vm(new_vmname, pool, connection, vapp)
           end
@@ -252,13 +250,14 @@ module Vmpooler
         end
 
         def get_vm_ip_address(vm_name, pool_name)
-          pool = pool_config(pool_name)
-          @connection_pool.with_metrics do |pool_object|
-            connection = ensured_vcd_connection(pool_object)
-            vm_hash = CloudAPI.get_vm(vm_name, connection, pool)
-          end
-          puts_red "CJS - get_vm_ip_address - VM #{vm_name} does not exist for the provider #{name}" if vm_hash.nil?
-          puts vm_hash.inspect
+          # pool = pool_config(pool_name)
+          # @connection_pool.with_metrics do |pool_object|
+            # connection = ensured_vcd_connection(pool_object)
+            # vm_hash = CloudAPI.get_vm(vm_name, connection, pool)
+          # end
+          # puts_red "CJS - get_vm_ip_address - VM #{vm_name} does not exist for the provider #{name}" if vm_hash.nil?
+          # puts vm_hash.inspect
+            puts "\e[31mCJS - get_vm_ip_address - This method is not implemented yet, returning a dummy IP address\e[0m"
           return '10.77.179.10'
         end
 
