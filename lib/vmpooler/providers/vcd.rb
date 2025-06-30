@@ -258,7 +258,7 @@ module Vmpooler
           end
           puts_red "CJS - get_vm_ip_address - VM #{vm_name} does not exist for the provider #{name}" if vm_hash.nil?
           puts vm_hash.inspect
-          return '10.77.179.11'
+          return '10.77.179.10'
         end
 
         # def create_config_spec(vm_name, template_name, extra_config)

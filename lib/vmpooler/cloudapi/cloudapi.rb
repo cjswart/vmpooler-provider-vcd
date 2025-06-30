@@ -67,10 +67,13 @@ class CloudAPI
 
     if vapp_response.code.to_i == 200 and vapp_response_body['total'].to_i == 1
       Logger.log('d', "[CJS] vapp #{vapp_name} already exists in vdc")
+      puts "\e[33m#{vapp_response_body.inspect}\e[0m"
       vapp = {
         name: vapp_response_body['record'][0]['name'],
         href: vapp_response_body['record'][0]['href']
       }
+      puts "========================================"
+      puts "\e[33m#{vapp.inspect}\e[0m"
       return vapp
     else
       # create vapp
