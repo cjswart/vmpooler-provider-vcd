@@ -228,6 +228,7 @@ class CloudAPI
       data = JSON.parse(response.body)
       storage_policy = data['record']
       storage_policy.each do |policy|
+        puts "[CJS] Compare Storage policy: #{policy['name']} with #{pool['storage_policy']}"
         if policy['name'] == pool['storage_policy']
           href = policy['href']
         end
@@ -282,9 +283,9 @@ class CloudAPI
     # Check if the VM already exists
     vm_hash = get_vm(new_vmname, connection, pool)
     if !vm_hash.empty?
-      puts "[CJS] VM #{new_vmname} already exists in vApp '#{vapp['name']}'"
+      puts "[CJS] VM #{new_vmname} already exists in vApp '#{pool['vapp']}'"
     else
-      puts "[CJS] VM #{new_vmname} does not exist, proceeding to create it in vApp '#{vapp['name']}'."
+      puts "[CJS] VM #{new_vmname} does not exist, proceeding to create it in vApp '#{pool['vapp']}'."
       # --------------------------------------------------------------------------------------------------
       # Check if the storage policy exists and get its href
       os_drive_storage_tier_href = cloudapi_get_storage_policy_href(pool, connection)

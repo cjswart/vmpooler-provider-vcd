@@ -240,11 +240,12 @@ module Vmpooler
             vapp = nil
             vapp = CloudAPI.cloudapi_vapp(pool, connection)
             raise("CJS Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
+            puts "[CJS] vApp '#{vapp['name']}' href is '#{vapp['href']}'"
             # Create a new VM in the vApp
             vm_hash = CloudAPI.cloudapi_create_vm(new_vmname, pool, connection, vapp)
           end
           # Check if the VM was created successfully
-          sleep 120
+          sleep 30
           # Return the VM hash
           vm_hash
         end
