@@ -282,9 +282,9 @@ class CloudAPI
     # Check if the VM already exists
     vm_hash = get_vm(new_vmname, connection, pool)
     if !vm_hash.empty?
-      puts "[CVM] VM #{new_vmname} already exists in vApp '#{vapp['name']}'"
+      puts "[CJS] VM #{new_vmname} already exists in vApp '#{vapp['name']}'"
     else
-      puts "[CVM] VM #{new_vmname} does not exist, proceeding to create it in vApp '#{vapp['name']}'."
+      puts "[CJS] VM #{new_vmname} does not exist, proceeding to create it in vApp '#{vapp['name']}'."
       # --------------------------------------------------------------------------------------------------
       # Check if the storage policy exists and get its href
       os_drive_storage_tier_href = cloudapi_get_storage_policy_href(pool, connection)

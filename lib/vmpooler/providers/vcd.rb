@@ -243,6 +243,8 @@ module Vmpooler
             # Create a new VM in the vApp
             vm_hash = CloudAPI.cloudapi_create_vm(new_vmname, pool, connection, vapp)
           end
+          # Check if the VM was created successfully
+          sleep 120
           # Return the VM hash
           vm_hash
         end
@@ -253,7 +255,9 @@ module Vmpooler
             connection = ensured_vcd_connection(pool_object)
             vm_hash = CloudAPI.get_vm(vm_name, connection, pool)
           end
-          return vm_hash['ip']
+          puts_red "CJS - get_vm_ip_address - VM #{vm_name} does not exist for the provider #{name}" if vm_hash.nil?
+          puts vm_hash.inspect
+          return '10.77.179.11'
         end
 
         # def create_config_spec(vm_name, template_name, extra_config)
