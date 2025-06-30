@@ -67,7 +67,6 @@ class CloudAPI
 
     if vapp_response.code.to_i == 200 and vapp_response_body['total'].to_i == 1
       Logger.log('d', "[CJS] vapp #{vapp_name} already exists in vdc")
-      puts "\e[33m#{vapp_response_body.inspect}\e[0m"
       vapp = {
         name: vapp_response_body['record'][0]['name'],
         href: vapp_response_body['record'][0]['href']
@@ -282,7 +281,7 @@ class CloudAPI
   end
   def self.cloudapi_create_vm(new_vmname, pool, connection, vapp)
     vm_hash = {}
-    Logger.log('d', "[CVM] Creating VM '#{new_vmname}' in vApp '#{pool['vapp']}'")
+    Logger.log('d', "[CVM] Creating VM '#{new_vmname}' in vApp '#{pool['vapp']}'  href: '#{vapp[:href]}'")
     # Check if the VM already exists
     vm_hash = get_vm(new_vmname, connection, pool)
     if !vm_hash.empty?
