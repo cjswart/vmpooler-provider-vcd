@@ -244,7 +244,7 @@ module Vmpooler
             vm_hash = CloudAPI.cloudapi_create_vm(new_vmname, pool, connection, vapp)
           end
           # Check if the VM was created successfully
-          sleep 30
+          sleep 10
           # Return the VM hash
           vm_hash
         end
