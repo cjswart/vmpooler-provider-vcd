@@ -196,7 +196,7 @@ class CloudAPI
   end
   def self.cloudapi_get_catalog_item_href(pool, connection)
     href = nil
-    catalog_query_url = vm_templates_query_url = "#{connection[:vcloud_url]}/api/query?type=vm&pageSize=1000&sortDesc=name&filter=isVAppTemplate==true;status!=FAILED_CREATION;status!=UNKNOWN;status!=UNRECOGNIZED;status!=UNRESOLVED&links=true"
+    catalog_query_url = "#{connection[:vcloud_url]}/api/query?type=vm&pageSize=1000&sortDesc=name&filter=isVAppTemplate==true;status!=FAILED_CREATION;status!=UNKNOWN;status!=UNRECOGNIZED;status!=UNRESOLVED&links=true"
     headers = {
       'Accept' => "application/*+json;version=#{connection[:api_version]}",
       'Authorization' => "Bearer #{connection[:session_token]}"
@@ -214,14 +214,13 @@ class CloudAPI
     end
     if href.nil?
       Logger.log('d', "[CJS] Cannot find VM Template: #{pool['template']} - Catalog: #{pool['catalog']}")
+    else
+      Logger.log('d', "[CJS] Found VM Template: #{pool['template']} - Catalog: #{pool['catalog']} with href: #{href}")
     end
     return href
   end
   def self.cloudapi_get_storage_policy_href(pool, connection)
     href = nil
-    puts "\e[33m#{pool.inspect}\e[0m"
-    puts "\e[33m#{connection.inspect}\e[0m"
-    puts "\e[33m=========================================\e[0m"
     storage_query_url = "#{connection[:vcloud_url]}/api/query?type=orgVdcStorageProfile&filter=vdc==#{connection[:vdc_id]}&format=records"
     headers = {
       'Accept' => "application/*+json;version=#{connection[:api_version]}",
