@@ -194,7 +194,7 @@ class CloudAPI
   end
   def self.cloudapi_get_catalog_item_href(pool, connection)
     href = nil
-    catalog_query_url = vm_templates_query_url = "#{VCLOUD_URL}/api/query?type=vm&pageSize=1000&sortDesc=name&filter=isVAppTemplate==true;status!=FAILED_CREATION;status!=UNKNOWN;status!=UNRECOGNIZED;status!=UNRESOLVED&links=true"
+    catalog_query_url = vm_templates_query_url = "#{connection[:vcloud_url]}/api/query?type=vm&pageSize=1000&sortDesc=name&filter=isVAppTemplate==true;status!=FAILED_CREATION;status!=UNKNOWN;status!=UNRECOGNIZED;status!=UNRESOLVED&links=true"
     headers = {
       'Accept' => "application/*+json;version=#{connection[:api_version]}",
       'Authorization' => "Bearer #{connection[:session_token]}"
@@ -217,7 +217,7 @@ class CloudAPI
   end
   def self.cloudapi_get_storage_policy_href(pool, connection)
     href = nil
-    storage_query_url = "#{VCLOUD_URL}/api/query?type=orgVdcStorageProfile&filter=vdc==#{connection[:vdc_id]}&format=records"
+    storage_query_url = "#{connection[:vcloud_url]}/api/query?type=orgVdcStorageProfile&filter=vdc==#{connection[:vdc_id]}&format=records"
     headers = {
       'Accept' => "application/*+json;version=#{connection[:api_version]}",
       'Authorization' => "Bearer #{connection[:session_token]}"
@@ -278,13 +278,13 @@ class CloudAPI
   end
   def self.cloudapi_create_vm(new_vmname, pool, connection, vapp)
     vm_hash = {}
-    Logger.log('d', "[CVM] Creating VM '#{new_vmname}' in vApp '#{pool[:vapp]}'")
+    Logger.log('d', "[CVM] Creating VM '#{new_vmname}' in vApp '#{pool['vapp']}'")
     # Check if the VM already exists
     vm_hash = get_vm(new_vmname, connection, pool)
     if !vm_hash.empty?
-      puts "[CVM] VM #{new_vmname} already exists in vApp '#{vapp[:name]}'"
+      puts "[CVM] VM #{new_vmname} already exists in vApp '#{vapp['name']}'"
     else
-      puts "[CVM] VM #{new_vmname} does not exist, proceeding to create it."
+      puts "[CVM] VM #{new_vmname} does not exist, proceeding to create it in vApp '#{vapp['name']}'."
       # --------------------------------------------------------------------------------------------------
       # Check if the storage policy exists and get its href
       os_drive_storage_tier_href = cloudapi_get_storage_policy_href(pool, connection)
