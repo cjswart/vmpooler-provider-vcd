@@ -141,7 +141,7 @@ class CloudAPI
       end
     end
   end
-  def self.get_vms_in_vapp(connection, pool)
+  def self.get_vms_in_pool(connection, pool)
     vms = []
     vapp = cloudapi_vapp(pool, connection)
     headers = {
@@ -160,7 +160,7 @@ class CloudAPI
 
     namespace = 'http://www.vmware.com/vcloud/v1.5'
     vm_elements = root.xpath('//vcloud:Vm', 'vcloud' => namespace)
-    vm_elements.map { |vm| vm['name'] }
+    vm_elements.map { |vm| { 'name' => vm['name'] } }
   end
 
   def self.get_vm(vm_name, connection, pool)
