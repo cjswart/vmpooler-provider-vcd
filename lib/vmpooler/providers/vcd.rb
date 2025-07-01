@@ -219,7 +219,42 @@ module Vmpooler
 
           false
         end
-
+        def wait_for_vm_creation(vm_name, pool, connection)
+          max_wait = 120 # seconds
+          waited = 0
+          interval = 10
+          loop do
+            sleep interval
+            waited += interval
+            refreshed_vm_hash = CloudAPI.get_vm(vm_name, connection, pool)
+            puts "Current status of VM #{vm_name}: #{refreshed_vm_hash['status']}"
+            if refreshed_vm_hash['status'] == 'POWERED_OFF'
+              puts_green "VM #{vm_name} is now created but powered_off."
+              puts "Attempting to power on VM #{vm_name}..."
+              sleep 20 # Give it a moment to settle
+              power_on_response = CloudAPI.poweron_vm(refreshed_vm_hash, connection)
+              if power_on_response.is_a?(Net::HTTPSuccess)
+                puts_green "VM #{refreshed_vm_hash['name']} powered on successfully."
+                puts "Waiting 30 seconds for VM #{refreshed_vm_hash['name']} to be fully operational..."
+                15.times do
+                  sleep 2
+                  print '.'
+                end
+              else
+                puts_red "Failed to power on VM #{refreshed_vm_hash['name']}. Response: #{power_on_response.body}"
+              end
+              return refreshed_vm_hash
+            end
+            if waited >= max_wait
+                puts_red "Timeout waiting for VM #{refreshed_vm_hash['name']} to be created."
+                return refreshed_vm_hash
+            end
+            if refreshed_vm_hash['status'] == 'POWERED_ON'
+              puts_green "VM #{refreshed_vm_hash['name']} is powered on."
+              return refreshed_vm_hash
+            end
+          end
+        end
         def get_vm(pool_name, vm_name)
           vm_hash = nil
           pool = pool_config(pool_name)
@@ -243,22 +278,18 @@ module Vmpooler
             # Create a new VM in the vApp
             vm_hash = CloudAPI.cloudapi_create_vm(new_vmname, pool, connection, vapp)
           end
-          # Check if the VM was created successfully
-          sleep 10
-          # Return the VM hash
+          vm_hash = wait_for_vm_creation(new_vmname, pool, connection)
           vm_hash
         end
 
         def get_vm_ip_address(vm_name, pool_name)
-          # pool = pool_config(pool_name)
-          # @connection_pool.with_metrics do |pool_object|
-            # connection = ensured_vcd_connection(pool_object)
-            # vm_hash = CloudAPI.get_vm(vm_name, connection, pool)
-          # end
-          # puts_red "CJS - get_vm_ip_address - VM #{vm_name} does not exist for the provider #{name}" if vm_hash.nil?
-          # puts vm_hash.inspect
-            puts "\e[31mCJS - get_vm_ip_address - This method is not implemented yet, returning a dummy IP address\e[0m"
-          return '10.77.179.10'
+          pool = pool_config(pool_name)
+          @connection_pool.with_metrics do |pool_object|
+            connection = ensured_vcd_connection(pool_object)
+            vm_hash = CloudAPI.get_vm(vm_name, connection, pool)
+          end
+          puts vm_hash.inspect
+          return vm_hash['ip']
         end
 
         # def create_config_spec(vm_name, template_name, extra_config)
