@@ -230,7 +230,7 @@ module Vmpooler
             puts "Current status of VM #{vm_name}: #{refreshed_vm_hash['status']}"
             if refreshed_vm_hash['status'] == 'POWERED_OFF'
               puts_green "VM #{vm_name} is now created but powered_off."
-              puts "Attempting to power on VM #{vm_name}..."
+                puts_red "Attempting to power on VM #{vm_name}..."
               sleep 20 # Give it a moment to settle
               power_on_response = CloudAPI.poweron_vm(refreshed_vm_hash, connection)
               if power_on_response.is_a?(Net::HTTPSuccess)
@@ -279,6 +279,7 @@ module Vmpooler
             vm_hash = CloudAPI.cloudapi_create_vm(new_vmname, pool, connection, vapp)
           end
           vm_hash = wait_for_vm_creation(new_vmname, pool, connection)
+            puts "\e[33mCreated VM: #{vm_hash.inspect}\e[0m"
           vm_hash
         end
 
@@ -288,7 +289,7 @@ module Vmpooler
             connection = ensured_vcd_connection(pool_object)
             vm_hash = CloudAPI.get_vm(vm_name, connection, pool)
           end
-          puts vm_hash.inspect
+            puts "\e[34mGet VM: #{vm_hash.inspect}\e[0m"
           return vm_hash['ip']
         end
 

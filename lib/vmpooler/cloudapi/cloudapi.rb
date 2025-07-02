@@ -71,8 +71,6 @@ class CloudAPI
         name: vapp_response_body['record'][0]['name'],
         href: vapp_response_body['record'][0]['href']
       }
-      puts "========================================"
-      puts "\e[33m#{vapp.inspect}\e[0m"
       return vapp
     else
       # create vapp
@@ -292,9 +290,6 @@ class CloudAPI
       puts "[CJS] VM #{new_vmname} does not exist, proceeding to create it in vApp '#{pool['vapp']}'."
       # --------------------------------------------------------------------------------------------------
       # Check if the storage policy exists and get its href
-      puts "\e[31m#{pool.inspect}\e[0m"
-      puts "========================================="
-      puts "\e[31m#{connection.inspect}\e[0m"
       os_drive_storage_tier_href = cloudapi_get_storage_policy_href(pool, connection)
       catalogItem_href = cloudapi_get_catalog_item_href(pool, connection)
       # Prepare the XML body for the VM creation request
