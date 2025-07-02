@@ -292,8 +292,8 @@ module Vmpooler
             connection = ensured_vcd_connection(pool_object)
             vm_hash = CloudAPI.get_vm(vm_name, connection, pool)
           end
-            puts "\e[34mGet VM: #{vm_hash.inspect}\e[0m"
-          return vm_hash['ip']
+          puts "\e[34mGet VM: #{vm_hash.inspect}\e[0m"
+          return vm_hash['ipAddress']
         end
 
         # def create_config_spec(vm_name, template_name, extra_config)
