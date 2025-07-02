@@ -32,7 +32,6 @@ class CloudAPI
     end
   end
   def self.cloudapi_check_session(connection)
-    Logger.log('d', "[CJS] Check cloudapi_sessions #{connection[:vcloud_url]} is still active")
     uri = URI("#{connection[:vcloud_url]}/cloudapi/1.0.0/sessions/current")
     request = Net::HTTP::Get.new(uri)
     request['Accept'] = "application/*;version=#{connection[:api_version]}"
@@ -41,10 +40,10 @@ class CloudAPI
       http.request(request)
     end
     if response.is_a?(Net::HTTPSuccess)
-      Logger.log('d', "[CJS] cloudapi_sessions still active")
+      Logger.log('d', "[CloudAPI] cloudapi_sessions still active")
       true
     else
-      Logger.log('d', "[CJS] cloudapi_session NOT ACTIVE")
+      Logger.log('d', "[CloudAPI] cloudapi_session NOT ACTIVE")
       false
     end
   end
@@ -60,13 +59,11 @@ class CloudAPI
   def self.cloudapi_vapp(pool, connection)
     vapp_name = pool['vapp']
     vapp_name = pool['name'] if vapp_name.nil? || vapp_name.empty?
-    Logger.log('d', "[CJS] Checking vapp #{vapp_name} in vdc")
-
     vapp_response = check_vapp_exists(vapp_name, connection)
     vapp_response_body = JSON.parse(vapp_response.body)
 
     if vapp_response.code.to_i == 200 and vapp_response_body['total'].to_i == 1
-      Logger.log('d', "[CJS] vapp #{vapp_name} already exists in vdc")
+      Logger.log('d', "[CloudAPI] vapp #{vapp_name} already exists in vdc")
       vapp = {
         name: vapp_response_body['record'][0]['name'],
         href: vapp_response_body['record'][0]['href']
@@ -74,9 +71,7 @@ class CloudAPI
       return vapp
     else
       # create vapp
-      Logger.log('d', "[CJS] Creating vapp #{vapp_name} in vdc")
       uri = URI("#{connection[:vdc_href]}/action/composeVApp")
-      Logger.log('d', "[CJS]  #{connection[:vdc_href]}/action/composeVApp in vdc")
       request = Net::HTTP::Post.new(uri)
       request['Accept'] = "application/*+json;version=#{connection[:api_version]}"
       request['Authorization'] = "Bearer #{connection[:session_token]}"
@@ -122,7 +117,7 @@ class CloudAPI
         http.request(request)
       end
       if response.is_a?(Net::HTTPSuccess)
-        Logger.log('d', "[CJS] VApp '#{vapp_name}' created successfully.")
+        Logger.log('d', "[CloudAPI] VApp '#{vapp_name}' created successfully.")
         vapp_response = check_vapp_exists(vapp_name, connection)
         vapp_response_body = JSON.parse(vapp_response.body)
         if vapp_response.code.to_i == 200 and vapp_response_body['total'].to_i == 1
@@ -132,11 +127,11 @@ class CloudAPI
           }
           return vapp
         else
-          Logger.log('d', "[CJS] Failed to retrieve vApp details after creation.")
+          Logger.log('d', "[CloudAPI] Failed to retrieve vApp details after creation.")
           nil
         end
       else
-        Logger.log('d', "[CJS] Failed to create VApp: #{response.code} #{response.message}")
+        Logger.log('d', "[CloudAPI] Failed to create VApp: #{response.code} #{response.message}")
         nil
       end
     end
@@ -152,10 +147,8 @@ class CloudAPI
     vapp_response = Net::HTTP.get_response(uri, headers)
 
     if vapp_response.code.to_i != 200
-      puts_red "Failed to retrieve vApp: #{vapp_response.body}"
       return []
     end
-    #puts "vap_response: #{vapp_response.code} #{vapp_response.message}  #{vapp_response.body}"
     root = Nokogiri::XML(vapp_response.body)
 
     namespace = 'http://www.vmware.com/vcloud/v1.5'
@@ -173,13 +166,12 @@ class CloudAPI
     }
     vm_response = Net::HTTP.get_response(uri, headers)
     vm_response_body = JSON.parse(vm_response.body) if vm_response.is_a?(Net::HTTPSuccess)
-    #puts "[CJS] VM response: #{vm_response.code} #{vm_response.message}\n#{vm_response.body}"
     if vm_response.is_a?(Net::HTTPSuccess) and vm_response_body['total'].to_i == 1
       vm_response_body['record'][0].each do |key, value|
         vm_hash[key] = value
       end
     else
-      Logger.log('d', "[CJS] VM '#{vm_name}' not found or multiple VMs with the same name exist.")
+      Logger.log('d', "[CloudAPI] VM '#{vm_name}' not found or multiple VMs with the same name exist.")
     end
     return vm_hash
   end
@@ -211,9 +203,9 @@ class CloudAPI
       end
     end
     if href.nil?
-      Logger.log('d', "[CJS] Cannot find VM Template: #{pool['template']} - Catalog: #{pool['catalog']}")
+      Logger.log('d', "[CloudAPI] Cannot find VM Template: #{pool['template']} - Catalog: #{pool['catalog']}")
     else
-      Logger.log('d', "[CJS] Found VM Template: #{pool['template']} - Catalog: #{pool['catalog']} with href: #{href}")
+      Logger.log('d', "[CloudAPI] Found VM Template: #{pool['template']} - Catalog: #{pool['catalog']} with href: #{href}")
     end
     return href
   end
@@ -236,13 +228,12 @@ class CloudAPI
       end
     end
     if href.nil?
-      Logger.log('d', "[CJS] Cannot find Storage policy: #{pool['storage_policy']}")
+      Logger.log('d', "[CloudAPI] Cannot find Storage policy: #{pool['storage_policy']}")
     end
     return href
   end
   def self.destroy_vm(vm_hash, connection)
     poweroff_vm(vm_hash, connection) if vm_hash['status'] == 'POWERED_ON'
-    puts "[CVM] VM Href: #{vm_hash['href']}"
     Logger.log('d', "[CVM] Deleting VM #{vm_hash['href']}")
     uri = URI("#{vm_hash['href']}")
     request = Net::HTTP::Delete.new(uri)
@@ -284,9 +275,9 @@ class CloudAPI
     # Check if the VM already exists
     vm_hash = get_vm(new_vmname, connection, pool)
     if !vm_hash.empty?
-      puts "[CJS] VM #{new_vmname} already exists in vApp '#{pool['vapp']}'"
+      Logger.log('d', "[CloudAPI] VM #{new_vmname} already exists in vApp '#{pool['vapp']}'")
     else
-      puts "[CJS] VM #{new_vmname} does not exist, proceeding to create it in vApp '#{pool['vapp']}'."
+      Logger.log('d', "[CloudAPI] VM #{new_vmname} does not exist, proceeding to create it in vApp '#{pool['vapp']}'.")
       # --------------------------------------------------------------------------------------------------
       # Check if the storage policy exists and get its href
       os_drive_storage_tier_href = cloudapi_get_storage_policy_href(pool, connection)
