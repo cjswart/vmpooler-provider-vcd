@@ -473,14 +473,21 @@ module Vmpooler
           return result
         end
 
+        # def vm_ready?(pool_name, vm_name, redis)
+        #   begin
+        #     domain = domain(pool_name)
+        #     open_socket(vm_name, domain)
+        #   rescue StandardError => e
+        #     redis.hset("vmpooler__vm__#{vm_name}", 'open_socket_error', e.to_s)
+        #     return false
+        #   end
+        #   redis.hdel("vmpooler__vm__#{vm_name}", 'open_socket_error')
+        #   true
+        # end
+
+        # mock vm_ready till we are on the rigth vmpooler server
         def vm_ready?(pool_name, vm_name, redis)
-          begin
-            domain = domain(pool_name)
-            open_socket(vm_name, domain)
-          rescue StandardError => e
-            redis.hset("vmpooler__vm__#{vm_name}", 'open_socket_error', e.to_s)
-            return false
-          end
+          domain = domain(pool_name)
           redis.hdel("vmpooler__vm__#{vm_name}", 'open_socket_error')
           true
         end
