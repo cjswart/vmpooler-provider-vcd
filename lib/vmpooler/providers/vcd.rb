@@ -277,9 +277,10 @@ module Vmpooler
             raise("CJS Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
             # Create a new VM in the vApp
             vm_hash = CloudAPI.cloudapi_create_vm(new_vmname, pool, connection, vapp)
-          end
-          vm_hash = wait_for_vm_creation(new_vmname, pool, connection)
+            puts "\e[33mCreating VM: #{vm_hash.inspect}\e[0m"
+            vm_hash = wait_for_vm_creation(new_vmname, pool, connection)
             puts "\e[33mCreated VM: #{vm_hash.inspect}\e[0m"
+          end
           vm_hash
         end
 
