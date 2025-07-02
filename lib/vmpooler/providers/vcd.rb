@@ -226,31 +226,32 @@ module Vmpooler
           loop do
             sleep interval
             waited += interval
+            puts "\e[31mWaiting for VM #{vm_name} to be created... (#{waited}/#{max_wait} seconds)\e[0m"
             refreshed_vm_hash = CloudAPI.get_vm(vm_name, connection, pool)
             puts "Current status of VM #{vm_name}: #{refreshed_vm_hash['status']}"
             if refreshed_vm_hash['status'] == 'POWERED_OFF'
-              puts_green "VM #{vm_name} is now created but powered_off."
-                puts_red "Attempting to power on VM #{vm_name}..."
+              puts "VM #{vm_name} is now created but powered_off."
+                puts "Attempting to power on VM #{vm_name}..."
               sleep 20 # Give it a moment to settle
               power_on_response = CloudAPI.poweron_vm(refreshed_vm_hash, connection)
               if power_on_response.is_a?(Net::HTTPSuccess)
-                puts_green "VM #{refreshed_vm_hash['name']} powered on successfully."
+                puts "VM #{refreshed_vm_hash['name']} powered on successfully."
                 puts "Waiting 30 seconds for VM #{refreshed_vm_hash['name']} to be fully operational..."
                 15.times do
                   sleep 2
                   print '.'
                 end
               else
-                puts_red "Failed to power on VM #{refreshed_vm_hash['name']}. Response: #{power_on_response.body}"
+                puts "\e[31mFailed to power on VM #{refreshed_vm_hash['name']}. Response: #{power_on_response.body}\e[0m"
               end
               return refreshed_vm_hash
             end
             if waited >= max_wait
-                puts_red "Timeout waiting for VM #{refreshed_vm_hash['name']} to be created."
+                puts "Timeout waiting for VM #{refreshed_vm_hash['name']} to be created."
                 return refreshed_vm_hash
             end
             if refreshed_vm_hash['status'] == 'POWERED_ON'
-              puts_green "VM #{refreshed_vm_hash['name']} is powered on."
+              puts "VM #{refreshed_vm_hash['name']} is powered on."
               return refreshed_vm_hash
             end
           end
@@ -276,8 +277,8 @@ module Vmpooler
             vapp = CloudAPI.cloudapi_vapp(pool, connection)
             raise("CJS Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
             # Create a new VM in the vApp
-            vm_hash = CloudAPI.cloudapi_create_vm(new_vmname, pool, connection, vapp)
-            puts "\e[33mCreating VM: #{vm_hash.inspect}\e[0m"
+            CloudAPI.cloudapi_create_vm(new_vmname, pool, connection, vapp)
+            # Wait for the VM to be created
             vm_hash = wait_for_vm_creation(new_vmname, pool, connection)
             puts "\e[33mCreated VM: #{vm_hash.inspect}\e[0m"
           end

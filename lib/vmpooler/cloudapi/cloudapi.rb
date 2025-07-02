@@ -230,7 +230,6 @@ class CloudAPI
       data = JSON.parse(response.body)
       storage_policy = data['record']
       storage_policy.each do |policy|
-        puts "[CJS] Compare Storage policy: #{policy['name']} with #{pool['storage_policy']}"
         if policy['name'] == pool['storage_policy']
           href = policy['href']
         end
@@ -341,8 +340,6 @@ class CloudAPI
       else
         Logger.log('d', "[CVM] Failed to create VM: #{response.code} #{response.message}")
       end
-      vm_hash = get_vm(new_vmname, connection, pool)
     end
-    return vm_hash
   end
 end
