@@ -286,6 +286,7 @@ module Vmpooler
         end
 
         def get_vm_ip_address(vm_name, pool_name)
+          vm_hash = nil
           pool = pool_config(pool_name)
           @connection_pool.with_metrics do |pool_object|
             connection = ensured_vcd_connection(pool_object)
