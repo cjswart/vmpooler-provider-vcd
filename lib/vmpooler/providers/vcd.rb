@@ -229,6 +229,13 @@ module Vmpooler
             puts "\e[31mWaiting for VM #{vm_name} to be created... (#{waited}/#{max_wait} seconds)\e[0m"
             refreshed_vm_hash = CloudAPI.get_vm(vm_name, connection, pool)
             puts "Current status of VM #{vm_name}: #{refreshed_vm_hash['status']}"
+            # If the VM is not found, we may need to retry to create it because it does not exists
+            # we don't want to wait the whole timeout for creation if it is not created at all
+            # This can happen if to much VM's are created at the same moment
+            if refreshed_vm_hash.nil? || refreshed_vm_hash.empty? and waited >= 2
+              puts "\e[31mVM #{vm_name} not found, retrying to create vm...\e[0m"
+              break
+            end
             if refreshed_vm_hash['status'] == 'POWERED_OFF'
               puts "VM #{vm_name} is now created but powered_off."
                 puts "Attempting to power on VM #{vm_name}..."
