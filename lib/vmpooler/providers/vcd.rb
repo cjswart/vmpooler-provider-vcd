@@ -276,10 +276,16 @@ module Vmpooler
             vapp = nil
             vapp = CloudAPI.cloudapi_vapp(pool, connection)
             raise("[VCD provider] Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
-            # Create a new VM in the vApp
-            CloudAPI.cloudapi_create_vm(new_vmname, pool, connection, vapp)
-            # Wait for the VM to be created
-            vm_hash = wait_for_vm_creation(new_vmname, pool, connection)
+            max_attempts = 5
+            attempts = 0
+            loop do
+              # Create a new VM in the vApp
+              CloudAPI.cloudapi_create_vm(new_vmname, pool, connection, vapp)
+              # Wait for the VM to be created, loop max 5 times or until isDeployed is true
+              vm_hash = wait_for_vm_creation(new_vmname, pool, connection)
+              break if vm_hash['isDeployed'] || attempts >= max_attempts - 1
+              attempts += 1
+            end
           end
           vm_hash
         end

@@ -40,10 +40,10 @@ class CloudAPI
       http.request(request)
     end
     if response.is_a?(Net::HTTPSuccess)
-      Logger.log('d', "[CloudAPI] cloudapi_sessions still active")
+      Logger.log('d', "[CCS] cloudapi_sessions still active")
       true
     else
-      Logger.log('d', "[CloudAPI] cloudapi_session NOT ACTIVE")
+      Logger.log('d', "[CCS] cloudapi_session NOT ACTIVE")
       false
     end
   end
@@ -63,7 +63,7 @@ class CloudAPI
     vapp_response_body = JSON.parse(vapp_response.body)
 
     if vapp_response.code.to_i == 200 and vapp_response_body['total'].to_i == 1
-      Logger.log('d', "[CloudAPI] vapp #{vapp_name} already exists in vdc")
+      Logger.log('d', "[VAPP] vapp #{vapp_name} already exists in vdc")
       vapp = {
         name: vapp_response_body['record'][0]['name'],
         href: vapp_response_body['record'][0]['href']
@@ -117,7 +117,7 @@ class CloudAPI
         http.request(request)
       end
       if response.is_a?(Net::HTTPSuccess)
-        Logger.log('d', "[CloudAPI] VApp '#{vapp_name}' created successfully.")
+        Logger.log('d', "[VAPP] VApp '#{vapp_name}' created successfully.")
         vapp_response = check_vapp_exists(vapp_name, connection)
         vapp_response_body = JSON.parse(vapp_response.body)
         if vapp_response.code.to_i == 200 and vapp_response_body['total'].to_i == 1
@@ -127,11 +127,11 @@ class CloudAPI
           }
           return vapp
         else
-          Logger.log('d', "[CloudAPI] Failed to retrieve vApp details after creation.")
+          Logger.log('d', "[VAPP] Failed to retrieve vApp details after creation.")
           nil
         end
       else
-        Logger.log('d', "[CloudAPI] Failed to create VApp: #{response.code} #{response.message}")
+        Logger.log('d', "[VAPP] Failed to create VApp: #{response.code} #{response.message}")
         nil
       end
     end
@@ -170,8 +170,10 @@ class CloudAPI
       vm_response_body['record'][0].each do |key, value|
         vm_hash[key] = value
       end
+      # add ip for backwards compatability
+      vm_hash['ip'] = vm_hash['ipAddress'] if vm_hash['ipAddress']
     else
-      Logger.log('d', "[CloudAPI] VM '#{vm_name}' not found or multiple VMs with the same name exist.")
+      Logger.log('d', "[GVM] VM '#{vm_name}' not found or multiple VMs with the same name exist.")
     end
     return vm_hash
   end
@@ -203,9 +205,9 @@ class CloudAPI
       end
     end
     if href.nil?
-      Logger.log('d', "[CloudAPI] Cannot find VM Template: #{pool['template']} - Catalog: #{pool['catalog']}")
+      Logger.log('d', "[GCI] Cannot find VM Template: #{pool['template']} - Catalog: #{pool['catalog']}")
     else
-      Logger.log('d', "[CloudAPI] Found VM Template: #{pool['template']} - Catalog: #{pool['catalog']} with href: #{href}")
+      Logger.log('d', "[GCI] Found VM Template: #{pool['template']} - Catalog: #{pool['catalog']} with href: #{href}")
     end
     return href
   end
@@ -228,7 +230,7 @@ class CloudAPI
       end
     end
     if href.nil?
-      Logger.log('d', "[CloudAPI] Cannot find Storage policy: #{pool['storage_policy']}")
+      Logger.log('d', "[GSP] Cannot find Storage policy: #{pool['storage_policy']}")
     end
     return href
   end
@@ -246,7 +248,7 @@ class CloudAPI
     return response
   end
   def self.poweron_vm(vm_hash, connection)
-    Logger.log('d', "[CVM] Powering on VM '#{vm_hash['href']}'")
+    Logger.log('d', "[PWR] Powering on VM '#{vm_hash['href']}'")
     uri = URI("#{vm_hash['href']}/power/action/powerOn")
     request = Net::HTTP::Post.new(uri)
     request['Accept'] = "application/*+json;version=#{connection[:api_version]}"
@@ -258,7 +260,7 @@ class CloudAPI
     return response
   end
   def self.poweroff_vm(vm_hash, connection)
-    Logger.log('d', "[CVM] Powering off VM '#{vm_hash['href']}'")
+    Logger.log('d', "[PWR] Powering off VM '#{vm_hash['href']}'")
     uri = URI("#{vm_hash['href']}/power/action/powerOff")
     request = Net::HTTP::Post.new(uri)
     request['Accept'] = "application/*+json;version=#{connection[:api_version]}"
@@ -275,9 +277,9 @@ class CloudAPI
     # Check if the VM already exists
     vm_hash = get_vm(new_vmname, connection, pool)
     if !vm_hash.empty?
-      Logger.log('d', "[CloudAPI] VM #{new_vmname} already exists in vApp '#{pool['vapp']}'")
+      Logger.log('d', "[CVM] VM #{new_vmname} already exists in vApp '#{pool['vapp']}'")
     else
-      Logger.log('d', "[CloudAPI] VM #{new_vmname} does not exist, proceeding to create it in vApp '#{pool['vapp']}'.")
+      Logger.log('d', "[CVM] VM #{new_vmname} does not exist, proceeding to create it in vApp '#{pool['vapp']}'.")
       # --------------------------------------------------------------------------------------------------
       # Check if the storage policy exists and get its href
       os_drive_storage_tier_href = cloudapi_get_storage_policy_href(pool, connection)
