@@ -258,11 +258,11 @@ class CloudAPI
     uri = URI("#{connection[:vcloud_url]}/cloudapi/1.0.0/securityTags/vm/urn:vcloud:#{id}")
     puts "\e[33m#{uri}\e[0m"
     puts vm_hash.inspect
-    request = Net::HTTP::Post.new(uri) 
+    request = Net::HTTP::Post.new(uri)
     request['Accept'] = "application/*+json;version=#{connection[:api_version]}"
     request['Authorization'] = "Bearer #{connection[:session_token]}"
     request.content_type = 'application/json'
-    request.set_form_data(security_tags)
+    request.set_form_data("{tags: #{security_tags}}")
     response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
       http.request(request)
     end
