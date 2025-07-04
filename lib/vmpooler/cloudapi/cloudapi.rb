@@ -175,7 +175,7 @@ class CloudAPI
       end
       # add ip for backwards compatability
       vm_hash['ip'] = vm_hash['ipAddress'] if vm_hash['ipAddress']
-      vm_hash['id'] = vm_hash['href'].split('/').last.split('-') if vm_hash['href']
+      vm_hash['id'] = vm_hash['href'].split('/').sub(/^vm-/, '') if vm_hash['href']
     else
       Logger.log('d', "[GVM] VM '#{vm_name}' not found or multiple VMs with the same name exist.")
     end
@@ -259,7 +259,8 @@ class CloudAPI
     request = Net::HTTP::Post.new(uri)
     request['Accept'] = "application/*+json;version=#{connection[:api_version]}"
     request['Authorization'] = "Bearer #{connection[:session_token]}"
-    request.content_type = 'application/vnd.vmware.vcloud.powerOnParams+xml'
+    request.content_type = 'application/json'
+    request.set_form_data(security_tags)
     response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
       http.request(request)
     end
