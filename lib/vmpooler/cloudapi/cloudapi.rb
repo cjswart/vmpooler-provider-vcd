@@ -107,6 +107,14 @@ class CloudAPI
               </NetworkConfig>
             </NetworkConfigSection>
           </InstantiationParams>
+          <SecurityTags>
+            <SecurityTag>
+              <Name>appfunc=vmpooler</Name>
+            </SecurityTag>
+            <SecurityTag>
+              <Name>env=production</Name>
+            </SecurityTag>
+          </SecurityTags>
           <!-- Add more <SourcedItem> blocks for additional VMs or templates -->
           <AllEULAsAccepted>true</AllEULAsAccepted>
         </ComposeVAppParams>

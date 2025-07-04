@@ -484,24 +484,25 @@ module Vmpooler
           return result
         end
 
-        # def vm_ready?(pool_name, vm_name, redis)
-        #   begin
-        #     domain = domain(pool_name)
-        #     open_socket(vm_name, domain)
-        #   rescue StandardError => e
-        #     redis.hset("vmpooler__vm__#{vm_name}", 'open_socket_error', e.to_s)
-        #     return false
-        #   end
-        #   redis.hdel("vmpooler__vm__#{vm_name}", 'open_socket_error')
-        #   true
-        # end
-
-        # mock vm_ready till we are on the rigth vmpooler server
         def vm_ready?(pool_name, vm_name, redis)
-          domain = domain(pool_name)
+          begin
+            domain = domain(pool_name)
+            open_socket(vm_name, domain)
+          rescue StandardError => e
+            redis.hset("vmpooler__vm__#{vm_name}", 'open_socket_error', e.to_s)
+            puts "\e[31mVM #{vm_name} is not ready: #{e}\e[0m"
+            return true
+          end
           redis.hdel("vmpooler__vm__#{vm_name}", 'open_socket_error')
           true
         end
+
+        # mock vm_ready till we are on the rigth vmpooler server
+        # def vm_ready?(pool_name, vm_name, redis)
+          # domain = domain(pool_name)
+          # redis.hdel("vmpooler__vm__#{vm_name}", 'open_socket_error')
+          # true
+        # end
 
         # VSphere Helper methods
 
@@ -599,6 +600,7 @@ module Vmpooler
           target_host = "#{host}.#{domain}" if domain
           sock = TCPSocket.new(target_host, port, connect_timeout: timeout)
           begin
+            puts "\e[33m#{sock.inspect}\e[0m"
             yield sock if block_given?
           ensure
             sock.close
