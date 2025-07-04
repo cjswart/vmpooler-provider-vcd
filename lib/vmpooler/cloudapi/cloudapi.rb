@@ -107,14 +107,6 @@ class CloudAPI
               </NetworkConfig>
             </NetworkConfigSection>
           </InstantiationParams>
-          <SecurityTags>
-            <SecurityTag>
-              <Name>appfunc=vmpooler</Name>
-            </SecurityTag>
-            <SecurityTag>
-              <Name>env=production</Name>
-            </SecurityTag>
-          </SecurityTags>
           <!-- Add more <SourcedItem> blocks for additional VMs or templates -->
           <AllEULAsAccepted>true</AllEULAsAccepted>
         </ComposeVAppParams>
@@ -304,25 +296,33 @@ class CloudAPI
       xml_body = <<~XML
         <root:RecomposeVAppParams xmlns:root="http://www.vmware.com/vcloud/v1.5" xmlns:ns0="http://schemas.dmtf.org/ovf/envelope/1">
           <root:SourcedItem>
-          <root:Source href="#{catalogItem_href}"
-          name="#{new_vmname}"
-          type="application/vnd.vmware.vcloud.vm+xml"/>
-          <root:InstantiationParams>
-             <root:NetworkConnectionSection><ns0:Info/>
-          <root:PrimaryNetworkConnectionIndex>0</root:PrimaryNetworkConnectionIndex>
-          <root:NetworkConnection network="#{pool['network']}">
-            <root:NetworkConnectionIndex>0</root:NetworkConnectionIndex>
-            <root:IpAddress/>
-            <root:IpType>IPV4</root:IpType>
-            <root:IsConnected>true</root:IsConnected>
-            <root:IpAddressAllocationMode>POOL</root:IpAddressAllocationMode>
-            <root:NetworkAdapterType>VMXNET3</root:NetworkAdapterType>
-          </root:NetworkConnection>
-            </root:NetworkConnectionSection>
-          </root:InstantiationParams>
-        <root:StorageProfile href="#{os_drive_storage_tier_href}" type="application/vnd.vmware.vcloud.vdcStorageProfile+xml"/>
+            <root:Source href="#{catalogItem_href}"
+            name="#{new_vmname}"
+            type="application/vnd.vmware.vcloud.vm+xml"/>
+            <root:InstantiationParams>
+              <root:NetworkConnectionSection><ns0:Info/>
+                <root:PrimaryNetworkConnectionIndex>0</root:PrimaryNetworkConnectionIndex>
+                <root:NetworkConnection network="#{pool['network']}">
+                  <root:NetworkConnectionIndex>0</root:NetworkConnectionIndex>
+                  <root:IpAddress/>
+                  <root:IpType>IPV4</root:IpType>
+                  <root:IsConnected>true</root:IsConnected>
+                  <root:IpAddressAllocationMode>POOL</root:IpAddressAllocationMode>
+                  <root:NetworkAdapterType>VMXNET3</root:NetworkAdapterType>
+                </root:NetworkConnection>
+              </root:NetworkConnectionSection>
+            </root:InstantiationParams>
+            <root:StorageProfile href="#{os_drive_storage_tier_href}" type="application/vnd.vmware.vcloud.vdcStorageProfile+xml"/>
           </root:SourcedItem>
           <root:AllEULAsAccepted>true</root:AllEULAsAccepted>
+          <SecurityTags>
+            <SecurityTag>
+              <Name>appfunc=vmpooler</Name>
+            </SecurityTag>
+            <SecurityTag>
+              <Name>env=production</Name>
+            </SecurityTag>
+          </SecurityTags>
         </root:RecomposeVAppParams>
       XML
       # Compose the API endpoint for VM instantiation
