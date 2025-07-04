@@ -252,6 +252,17 @@ class CloudAPI
   end
   def self.add_security_tags(vm_hash, connection, security_tags)
     Logger.log('d', "[AST] Adding security tags to VM '#{vm_hash['href']}'")
+    uri = URI("#{connection[:vcloud_url]}/cloudapi/1.0.0/securityTags/vm/urn:vcloud:vm:#{vm_hash['id']}")
+    puts "\e[33m#{uri}\e[0m"
+    puts vm_hash.inspect
+    request = Net::HTTP::Post.new(uri)
+    request['Accept'] = "application/*+json;version=#{connection[:api_version]}"
+    request['Authorization'] = "Bearer #{connection[:session_token]}"
+    request.content_type = 'application/vnd.vmware.vcloud.powerOnParams+xml'
+    response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
+      http.request(request)
+    end
+    return response
   end
   def self.poweron_vm(vm_hash, connection)
     Logger.log('d', "[PWR] Powering on VM '#{vm_hash['href']}'")
