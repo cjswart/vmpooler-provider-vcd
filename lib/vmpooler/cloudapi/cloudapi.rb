@@ -175,6 +175,7 @@ class CloudAPI
       end
       # add ip for backwards compatability
       vm_hash['ip'] = vm_hash['ipAddress'] if vm_hash['ipAddress']
+      vm_hash['id'] = vm_hash['href'].split('/').last.split('-') if vm_hash['href']
     else
       Logger.log('d', "[GVM] VM '#{vm_name}' not found or multiple VMs with the same name exist.")
     end

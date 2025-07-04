@@ -238,14 +238,15 @@ module Vmpooler
             end
             if refreshed_vm_hash['status'] == 'POWERED_OFF'
               puts "VM #{vm_name} is now created but powered_off."
-                puts "Attempting to power on VM #{vm_name}..."
+              puts "If specified trying to add security tags to VM #{refreshed_vm_hash['name']}..."
               sleep 10 # Give it a moment to settle
               if pool['security_tags'] && !pool['security_tags'].empty?
                 puts "Adding security tags to VM #{refreshed_vm_hash['name']}..."
-                security_tags = JSON.parse(pool['security_tags'].to_json)
+                security_tags = pool['security_tags']
                 puts "Security tags to be added: #{security_tags}"
                 security_tags_response = CloudAPI.add_security_tags(refreshed_vm_hash, connection, security_tags)
               end
+              puts "Attempting to power on VM #{vm_name}..."
               sleep 10 # Give it a moment to settle after adding security tags
               power_on_response = CloudAPI.poweron_vm(refreshed_vm_hash, connection)
               if power_on_response.is_a?(Net::HTTPSuccess)
