@@ -59,13 +59,13 @@ class CloudAPI
   def self.cloudapi_vapp(pool, connection)
     vapp_name = pool['vapp']
     vapp_name = pool['name'] if vapp_name.nil? || vapp_name.empty?
-    Logger.log('d', "[CJS] Checking vapp #{vapp_name} in vdc")
+    Logger.log('d', "[VAPP] Checking vapp #{vapp_name} in vdc")
 
     vapp_response = check_vapp_exists(vapp_name, connection)
     vapp_response_body = JSON.parse(vapp_response.body)
 
     if vapp_response.code.to_i == 200 and vapp_response_body['total'].to_i == 1
-      Logger.log('d', "[CJS] vapp #{vapp_name} already exists in vdc")
+      Logger.log('d', "[VAPP] vapp #{vapp_name} already exists in vdc")
       vapp = {
         name: vapp_response_body['record'][0]['name'],
         href: vapp_response_body['record'][0]['href']
@@ -73,9 +73,8 @@ class CloudAPI
       return vapp
     else
       # create vapp
-      Logger.log('d', "[CJS] Creating vapp #{vapp_name} in vdc")
+      Logger.log('d', "[VAPP] Creating vapp #{vapp_name} in vdc")
       uri = URI("#{connection[:vdc_href]}/action/composeVApp")
-      Logger.log('d', "[CJS]  #{connection[:vdc_href]}/action/composeVApp in vdc")
       request = Net::HTTP::Post.new(uri)
       request['Accept'] = "application/*+json;version=#{connection[:api_version]}"
       request['Authorization'] = "Bearer #{connection[:session_token]}"
@@ -121,7 +120,7 @@ class CloudAPI
         http.request(request)
       end
       if response.is_a?(Net::HTTPSuccess)
-        Logger.log('d', "[CJS] VApp '#{vapp_name}' created successfully.")
+        Logger.log('d', "[VAPP] VApp '#{vapp_name}' created successfully.")
         vapp_response = check_vapp_exists(vapp_name, connection)
         vapp_response_body = JSON.parse(vapp_response.body)
         if vapp_response.code.to_i == 200 and vapp_response_body['total'].to_i == 1
@@ -131,11 +130,11 @@ class CloudAPI
           }
           return vapp
         else
-          Logger.log('d', "[CJS] Failed to retrieve vApp details after creation.")
+          Logger.log('d', "[VAPP] Failed to retrieve vApp details after creation.")
           nil
         end
       else
-        Logger.log('d', "[CJS] Failed to create VApp: #{response.code} #{response.message}")
+        Logger.log('d', "[VAPP] Failed to create VApp: #{response.code} #{response.message}")
         nil
       end
     end
@@ -251,6 +250,9 @@ class CloudAPI
     end
     return response
   end
+  def self.add_security_tags(vm_hash, connection, security_tags)
+    Logger.log('d', "[AST] Adding security tags to VM '#{vm_hash['href']}'")
+  end
   def self.poweron_vm(vm_hash, connection)
     Logger.log('d', "[PWR] Powering on VM '#{vm_hash['href']}'")
     uri = URI("#{vm_hash['href']}/power/action/powerOn")
@@ -319,14 +321,6 @@ class CloudAPI
             <root:StorageProfile href="#{os_drive_storage_tier_href}" type="application/vnd.vmware.vcloud.vdcStorageProfile+xml"/>
           </root:SourcedItem>
           <root:AllEULAsAccepted>true</root:AllEULAsAccepted>
-          <SecurityTags>
-            <SecurityTag>
-              <Name>appfunc=vmpooler</Name>
-            </SecurityTag>
-            <SecurityTag>
-              <Name>env=production</Name>
-            </SecurityTag>
-          </SecurityTags>
         </root:RecomposeVAppParams>
       XML
       # Compose the API endpoint for VM instantiation
