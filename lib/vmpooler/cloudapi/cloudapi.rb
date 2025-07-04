@@ -175,7 +175,7 @@ class CloudAPI
       end
       # add ip for backwards compatability
       vm_hash['ip'] = vm_hash['ipAddress'] if vm_hash['ipAddress']
-      vm_hash['id'] = vm_hash['href'].split('/').sub(/^vm-/, '') if vm_hash['href']
+      vm_hash['id'] = vm_hash['href'].split('/') if vm_hash['href']
     else
       Logger.log('d', "[GVM] VM '#{vm_name}' not found or multiple VMs with the same name exist.")
     end
@@ -253,10 +253,12 @@ class CloudAPI
   end
   def self.add_security_tags(vm_hash, connection, security_tags)
     Logger.log('d', "[AST] Adding security tags to VM '#{vm_hash['href']}'")
-    uri = URI("#{connection[:vcloud_url]}/cloudapi/1.0.0/securityTags/vm/urn:vcloud:vm:#{vm_hash['id']}")
+    #id = vm_hash['id'].sub(/^vm-/, '') if vm_hash['id'].start_with?('vm-')
+    id = vm_hash['id'].sub!('vm-', 'vm:') if !vm_hash['id'].nil? && vm_hash['id'].start_with?('vm-')
+    uri = URI("#{connection[:vcloud_url]}/cloudapi/1.0.0/securityTags/vm/urn:vcloud:#{id}")
     puts "\e[33m#{uri}\e[0m"
     puts vm_hash.inspect
-    request = Net::HTTP::Post.new(uri)
+    request = Net::HTTP::Post.new(uri) 
     request['Accept'] = "application/*+json;version=#{connection[:api_version]}"
     request['Authorization'] = "Bearer #{connection[:session_token]}"
     request.content_type = 'application/json'

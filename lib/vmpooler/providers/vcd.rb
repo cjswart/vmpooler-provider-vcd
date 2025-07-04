@@ -245,6 +245,11 @@ module Vmpooler
                 security_tags = pool['security_tags']
                 puts "Security tags to be added: #{security_tags}"
                 security_tags_response = CloudAPI.add_security_tags(refreshed_vm_hash, connection, security_tags)
+                if security_tags_response.is_a?(Net::HTTPSuccess)
+                  puts "Security tags added successfully to VM #{refreshed_vm_hash['name']}."
+                else
+                  puts "\e[31mFailed to add security tags to VM #{refreshed_vm_hash['name']}. Response: #{security_tags_response.body}\e[0m"
+                end
               end
               puts "Attempting to power on VM #{vm_name}..."
               sleep 10 # Give it a moment to settle after adding security tags
