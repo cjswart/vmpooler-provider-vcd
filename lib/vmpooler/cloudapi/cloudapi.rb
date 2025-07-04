@@ -252,6 +252,7 @@ class CloudAPI
   end
   def self.add_security_tags(vm_hash, connection, security_tags)
     Logger.log('d', "[AST] Adding security tags to VM '#{vm_hash['href']}'")
+    security_tags = JSON.parse(security_tags) if security_tags.is_a?(String)
     tags = { "tags": security_tags }
     id = vm_hash['href'].split('/').last.sub!('vm-', 'vm:')
     uri = URI("#{connection[:vcloud_url]}/cloudapi/1.0.0/securityTags/vm/urn:vcloud:#{id}")
