@@ -237,8 +237,8 @@ module Vmpooler
               break
             end
             if refreshed_vm_hash['status'] == 'POWERED_OFF'
-              puts "VM #{vm_name} is now created but powered_off."
-              puts "If specified trying to add security tags to VM #{refreshed_vm_hash['name']}..."
+              logger.log('d', "VM #{vm_name} is now created but powered_off.")
+              logger.log('d', "If specified trying to add security tags to VM #{refreshed_vm_hash['name']}...")
               sleep 10 # Give it a moment to settle
               if pool['security_tags'] && !pool['security_tags'].empty?
                 puts "Adding security tags to VM #{refreshed_vm_hash['name']}..."
@@ -252,7 +252,6 @@ module Vmpooler
                 end
               end
               puts "Attempting to power on VM #{vm_name}..."
-              sleep 10 # Give it a moment to settle after adding security tags
               power_on_response = CloudAPI.poweron_vm(refreshed_vm_hash, connection)
               if power_on_response.is_a?(Net::HTTPSuccess)
                 puts "VM #{refreshed_vm_hash['name']} powered on successfully."
