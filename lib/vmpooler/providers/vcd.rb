@@ -236,25 +236,27 @@ module Vmpooler
               end
             end
             puts "Attempting to power on VM #{vm_name}...#{refreshed_vm_hash['status']}"
-          #  task_href = CloudAPI.poweron_vm(refreshed_vm_hash, connection)
-          #   max_wait = 120 # seconds
-          #   waited = 0
-          #   interval = 10
-          #   task_status = CloudAPI.get_task_status(task_href, connection)
-          #   while task_status == 'running' || task_status == 'queued'
-          #     sleep interval
-          #     waited += interval
-          #     task_status = CloudAPI.get_task_status(task_href, connection)
-          #     if waited >= max_wait
-          #       puts_red "Timeout waiting for VM power on task to finish."
-          #       break
-          #     end
-          #   end
-          #   if task_status == 'success'
-          #     puts_green "VM #{vm_name} powered on successfully."
-          #     refreshed_vm_hash = CloudAPI.get_vm(vm_name, connection, pool)
-          #   else
-          #     puts_red "Task Power On VM #{vm_name} failed status after waiting: #{task_status}"
+            task_href = nil
+            task_href = CloudAPI.poweron_vm(refreshed_vm_hash, connection)
+            max_wait = 120 # seconds
+            waited = 0
+            interval = 10
+            task_status = CloudAPI.get_task_status(task_href, connection)
+            while task_status == 'running' || task_status == 'queued'
+              sleep interval
+              waited += interval
+              task_status = CloudAPI.get_task_status(task_href, connection)
+              if waited >= max_wait
+                puts "Timeout waiting for VM power on task to finish."
+                break
+              end
+            end
+            if task_status == 'success'
+              puts "VM #{vm_name} powered on successfully."
+              refreshed_vm_hash = CloudAPI.get_vm(vm_name, connection, pool)
+            else
+              puts "Task Power On VM #{vm_name} failed status after waiting: #{task_status}"
+            end
           end
           return refreshed_vm_hash
         end
@@ -290,7 +292,7 @@ module Vmpooler
               waited += interval
               task_status = CloudAPI.get_task_status(task_href, connection)
               if waited >= max_wait
-                puts_red "Timeout waiting for VM creation task to finish."
+                puts "Timeout waiting for VM creation task to finish."
                 break
               end
             end
