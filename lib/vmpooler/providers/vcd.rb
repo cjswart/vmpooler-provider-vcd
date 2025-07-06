@@ -221,22 +221,22 @@ module Vmpooler
         end
         def check_power_on_and_get_vm(vm_name, pool, connection)
           refreshed_vm_hash = CloudAPI.get_vm(vm_name, connection, pool)
-          # if refreshed_vm_hash['status'] == 'POWERED_OFF'
-          #   logger.log('d', "VM #{vm_name} is now created but powered_off.")
-          #   logger.log('d', "If specified trying to add security tags to VM #{refreshed_vm_hash['name']}...")
-          #   if pool['security_tags'] && !pool['security_tags'].empty?
-          #     puts "Adding security tags to VM #{refreshed_vm_hash['name']}..."
-          #     security_tags = pool['security_tags']
-          #     puts "Security tags to be added: #{security_tags}"
-          #     security_tags_response = CloudAPI.add_security_tags(refreshed_vm_hash, connection, security_tags)
-          #     if security_tags_response.is_a?(Net::HTTPSuccess)
-          #       puts "Security tags added successfully to VM #{refreshed_vm_hash['name']}."
-          #     else
-          #       puts "\e[31mFailed to add security tags to VM #{refreshed_vm_hash['name']}. Response: #{security_tags_response.body}\e[0m"
-          #     end
-          #   end
-          #   puts "Attempting to power on VM #{vm_name}..."
-          #   task_href = CloudAPI.poweron_vm(refreshed_vm_hash, connection)
+          if refreshed_vm_hash['status'] == 'POWERED_OFF'
+            logger.log('d', "VM #{vm_name} is now created but powered_off.")
+            logger.log('d', "If specified trying to add security tags to VM #{refreshed_vm_hash['name']}...")
+            if pool['security_tags'] && !pool['security_tags'].empty?
+              puts "Adding security tags to VM #{refreshed_vm_hash['name']}..."
+              security_tags = pool['security_tags']
+              puts "Security tags to be added: #{security_tags}"
+              security_tags_response = CloudAPI.add_security_tags(refreshed_vm_hash, connection, security_tags)
+              if security_tags_response.is_a?(Net::HTTPSuccess)
+                puts "Security tags added successfully to VM #{refreshed_vm_hash['name']}."
+              else
+                puts "\e[31mFailed to add security tags to VM #{refreshed_vm_hash['name']}. Response: #{security_tags_response.body}\e[0m"
+              end
+            end
+            puts "Attempting to power on VM #{vm_name}...#{refreshed_vm_hash['status']}"
+          #  task_href = CloudAPI.poweron_vm(refreshed_vm_hash, connection)
           #   max_wait = 120 # seconds
           #   waited = 0
           #   interval = 10
@@ -255,7 +255,7 @@ module Vmpooler
           #     refreshed_vm_hash = CloudAPI.get_vm(vm_name, connection, pool)
           #   else
           #     puts_red "Task Power On VM #{vm_name} failed status after waiting: #{task_status}"
-          # end
+          end
           return refreshed_vm_hash
         end
         def get_vm(pool_name, vm_name)
