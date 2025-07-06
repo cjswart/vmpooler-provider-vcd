@@ -219,61 +219,44 @@ module Vmpooler
 
           false
         end
-        def wait_for_vm_creation(vm_name, pool, connection)
-          max_wait = 120 # seconds
-          waited = 0
-          interval = 10
-          loop do
-            sleep interval
-            waited += interval
-            puts "\e[31mWaiting for VM #{vm_name} to be created... (#{waited}/#{max_wait} seconds)\e[0m"
-            refreshed_vm_hash = CloudAPI.get_vm(vm_name, connection, pool)
-            puts "Current status of VM #{vm_name}: #{refreshed_vm_hash['status']}"
-            # If the VM is not found, we may need to retry to create it because it does not exists
-            # we don't want to wait the whole timeout for creation if it is not created at all
-            # This can happen if to much VM's are created at the same moment
-            if refreshed_vm_hash.nil? || refreshed_vm_hash.empty? and waited >= 2
-              puts "\e[31mVM #{vm_name} not found, retrying to create vm...\e[0m"
-              break
-            end
-            if refreshed_vm_hash['status'] == 'POWERED_OFF'
-              logger.log('d', "VM #{vm_name} is now created but powered_off.")
-              logger.log('d', "If specified trying to add security tags to VM #{refreshed_vm_hash['name']}...")
-              sleep 10 # Give it a moment to settle
-              if pool['security_tags'] && !pool['security_tags'].empty?
-                puts "Adding security tags to VM #{refreshed_vm_hash['name']}..."
-                security_tags = pool['security_tags']
-                puts "Security tags to be added: #{security_tags}"
-                security_tags_response = CloudAPI.add_security_tags(refreshed_vm_hash, connection, security_tags)
-                if security_tags_response.is_a?(Net::HTTPSuccess)
-                  puts "Security tags added successfully to VM #{refreshed_vm_hash['name']}."
-                else
-                  puts "\e[31mFailed to add security tags to VM #{refreshed_vm_hash['name']}. Response: #{security_tags_response.body}\e[0m"
-                end
-              end
-              puts "Attempting to power on VM #{vm_name}..."
-              power_on_response = CloudAPI.poweron_vm(refreshed_vm_hash, connection)
-              if power_on_response.is_a?(Net::HTTPSuccess)
-                puts "VM #{refreshed_vm_hash['name']} powered on successfully."
-                puts "Waiting 30 seconds for VM #{refreshed_vm_hash['name']} to be fully operational..."
-                15.times do
-                  sleep 2
-                  print '.'
-                end
+        def check_power_on_and_get_vm(vm_name, pool, connection)
+          refreshed_vm_hash = CloudAPI.get_vm(vm_name, connection, pool)
+          if refreshed_vm_hash['status'] == 'POWERED_OFF'
+            logger.log('d', "VM #{vm_name} is now created but powered_off.")
+            logger.log('d', "If specified trying to add security tags to VM #{refreshed_vm_hash['name']}...")
+            if pool['security_tags'] && !pool['security_tags'].empty?
+              puts "Adding security tags to VM #{refreshed_vm_hash['name']}..."
+              security_tags = pool['security_tags']
+              puts "Security tags to be added: #{security_tags}"
+              security_tags_response = CloudAPI.add_security_tags(refreshed_vm_hash, connection, security_tags)
+              if security_tags_response.is_a?(Net::HTTPSuccess)
+                puts "Security tags added successfully to VM #{refreshed_vm_hash['name']}."
               else
-                puts "\e[31mFailed to power on VM #{refreshed_vm_hash['name']}. Response: #{power_on_response.body}\e[0m"
+                puts "\e[31mFailed to add security tags to VM #{refreshed_vm_hash['name']}. Response: #{security_tags_response.body}\e[0m"
               end
-              return refreshed_vm_hash
             end
-            if waited >= max_wait
-                puts "Timeout waiting for VM #{refreshed_vm_hash['name']} to be created."
-                return refreshed_vm_hash
+            puts "Attempting to power on VM #{vm_name}..."
+            task_href = CloudAPI.poweron_vm(refreshed_vm_hash, connection)
+            max_wait = 120 # seconds
+            waited = 0
+            interval = 10
+            task_status = CloudAPI.get_task_status(task_href, connection)
+            while task_status == 'running' || task_status == 'queued'
+              sleep interval
+              waited += interval
+              task_status = CloudAPI.get_task_status(task_href, connection)
+              if waited >= max_wait
+                puts_red "Timeout waiting for VM power on task to finish."
+                break
+              end
             end
-            if refreshed_vm_hash['status'] == 'POWERED_ON'
-              puts "VM #{refreshed_vm_hash['name']} is powered on."
-              return refreshed_vm_hash
-            end
+            if task_status == 'success'
+              puts_green "VM #{vm_name} powered on successfully."
+              refreshed_vm_hash = CloudAPI.get_vm(vm_name, connection, pool)
+            else
+              puts_red "Task Power On VM #{vm_name} failed status after waiting: #{task_status}"
           end
+          return refreshed_vm_hash
         end
         def get_vm(pool_name, vm_name)
           vm_hash = nil
@@ -295,20 +278,30 @@ module Vmpooler
             vapp = nil
             vapp = CloudAPI.cloudapi_vapp(pool, connection)
             raise("[VCD provider] Pool #{pool_name} does not exist for the provider #{name}") if vapp.nil?
-            max_attempts = 5
-            attempts = 0
-            loop do
-              # Create a new VM in the vApp
-              CloudAPI.cloudapi_create_vm(new_vmname, pool, connection, vapp)
-              # Wait for the VM to be created, loop max 5 times or until isDeployed is true
-              vm_hash = wait_for_vm_creation(new_vmname, pool, connection)
-              break if vm_hash['isDeployed'] || attempts >= max_attempts - 1
-              attempts += 1
+            # Create a new VM in the vApp
+            task_href = nil
+            task_href = CloudAPI.cloudapi_create_vm(new_vmname, pool, connection, vapp)
+            max_wait = 290 # seconds
+            waited = 0
+            interval = 10
+            task_status = CloudAPI.get_task_status(task_href, connection)
+            while task_status == 'running' || task_status == 'queued'
+              sleep interval
+              waited += interval
+              task_status = CloudAPI.get_task_status(task_href, connection)
+              if waited >= max_wait
+                puts_red "Timeout waiting for VM creation task to finish."
+                break
+              end
+            end
+            if task_status == 'success'
+              vm_hash = check_power_on_and_get_vm(new_vmname, pool, connection)
+            else
+                logger.log('s', "\e[31mTask Create VM #{new_vmname} failed status after waiting: #{task_status}\e[0m")
             end
           end
           vm_hash
         end
-
         def get_vm_ip_address(vm_name, pool_name)
           vm_hash = nil
           pool = pool_config(pool_name)

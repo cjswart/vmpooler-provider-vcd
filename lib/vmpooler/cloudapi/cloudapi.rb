@@ -31,6 +31,28 @@ class CloudAPI
       nil
     end
   end
+  def self.get_task_status(task_href, connection)
+    uri = URI(task_href)
+    request = Net::HTTP::Get.new(uri)
+    request['Accept'] = "application/*+json;version=#{connection[:api_version]}"
+    request['Authorization'] = "Bearer #{connection[:session_token]}"
+    response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
+      http.request(request)
+    end
+    if response.is_a?(Net::HTTPSuccess)
+      task_data = JSON.parse(response.body)
+      task_status = task_data['status']
+      Logger.log('d', "[TASK] Task status for '#{task_href}': #{task_status}")
+      if task_status == 'success'
+        Logger.log('d', "[TASK] Task '#{task_href}' completed successfully.")
+      elsif task_status == 'error'
+        Logger.log('d', "[TASK] Task '#{task_href}' failed with error: #{task_data['error']['message']}")
+      elsif task_status == 'running' || task_status == 'queued'
+        Logger.log('d', "[TASK] Task '#{task_href}' is currently still #{task_status}.")
+      end
+      return task_status
+    end
+  end
   def self.cloudapi_check_session(connection)
     uri = URI("#{connection[:vcloud_url]}/cloudapi/1.0.0/sessions/current")
     request = Net::HTTP::Get.new(uri)
@@ -239,7 +261,7 @@ class CloudAPI
   end
   def self.destroy_vm(vm_hash, connection)
     poweroff_vm(vm_hash, connection) if vm_hash['status'] == 'POWERED_ON'
-    Logger.log('d', "[CVM] Deleting VM #{vm_hash['href']}")
+    Logger.log('d', "[DVM] Deleting VM #{vm_hash['href']}")
     uri = URI("#{vm_hash['href']}")
     request = Net::HTTP::Delete.new(uri)
     request['Accept'] = "application/*+json;version=#{connection[:api_version]}"
@@ -276,7 +298,18 @@ class CloudAPI
     response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
       http.request(request)
     end
-    return response
+    if response.is_a?(Net::HTTPSuccess)
+      begin
+        body = JSON.parse(response.body)
+        href = body['href']
+        return href
+      rescue JSON::ParserError
+        Logger.log('d', "[CVM] Could not parse response body as JSON to extract href.")
+        return nil
+      end
+    else
+      return nil
+    end
   end
   def self.poweroff_vm(vm_hash, connection)
     Logger.log('d', "[PWR] Powering off VM '#{vm_hash['href']}'")
@@ -351,6 +384,18 @@ class CloudAPI
         Logger.log('d', "[CVM] VM '#{new_vmname}' created successfully in vApp '#{pool['vapp']}'")
       else
         Logger.log('d', "[CVM] Failed to create VM: #{response.code} #{response.message}")
+      end
+      if response.is_a?(Net::HTTPSuccess)
+        begin
+          body = JSON.parse(response.body)
+          href = body['href']
+          return href
+        rescue JSON::ParserError
+          Logger.log('d', "[CVM] Could not parse response body as JSON to extract href.")
+          return nil
+        end
+      else
+        return nil
       end
     end
   end
