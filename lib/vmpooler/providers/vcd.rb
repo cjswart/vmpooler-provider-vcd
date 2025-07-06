@@ -221,41 +221,41 @@ module Vmpooler
         end
         def check_power_on_and_get_vm(vm_name, pool, connection)
           refreshed_vm_hash = CloudAPI.get_vm(vm_name, connection, pool)
-          if refreshed_vm_hash['status'] == 'POWERED_OFF'
-            logger.log('d', "VM #{vm_name} is now created but powered_off.")
-            logger.log('d', "If specified trying to add security tags to VM #{refreshed_vm_hash['name']}...")
-            if pool['security_tags'] && !pool['security_tags'].empty?
-              puts "Adding security tags to VM #{refreshed_vm_hash['name']}..."
-              security_tags = pool['security_tags']
-              puts "Security tags to be added: #{security_tags}"
-              security_tags_response = CloudAPI.add_security_tags(refreshed_vm_hash, connection, security_tags)
-              if security_tags_response.is_a?(Net::HTTPSuccess)
-                puts "Security tags added successfully to VM #{refreshed_vm_hash['name']}."
-              else
-                puts "\e[31mFailed to add security tags to VM #{refreshed_vm_hash['name']}. Response: #{security_tags_response.body}\e[0m"
-              end
-            end
-            puts "Attempting to power on VM #{vm_name}..."
-            task_href = CloudAPI.poweron_vm(refreshed_vm_hash, connection)
-            max_wait = 120 # seconds
-            waited = 0
-            interval = 10
-            task_status = CloudAPI.get_task_status(task_href, connection)
-            while task_status == 'running' || task_status == 'queued'
-              sleep interval
-              waited += interval
-              task_status = CloudAPI.get_task_status(task_href, connection)
-              if waited >= max_wait
-                puts_red "Timeout waiting for VM power on task to finish."
-                break
-              end
-            end
-            if task_status == 'success'
-              puts_green "VM #{vm_name} powered on successfully."
-              refreshed_vm_hash = CloudAPI.get_vm(vm_name, connection, pool)
-            else
-              puts_red "Task Power On VM #{vm_name} failed status after waiting: #{task_status}"
-          end
+          # if refreshed_vm_hash['status'] == 'POWERED_OFF'
+          #   logger.log('d', "VM #{vm_name} is now created but powered_off.")
+          #   logger.log('d', "If specified trying to add security tags to VM #{refreshed_vm_hash['name']}...")
+          #   if pool['security_tags'] && !pool['security_tags'].empty?
+          #     puts "Adding security tags to VM #{refreshed_vm_hash['name']}..."
+          #     security_tags = pool['security_tags']
+          #     puts "Security tags to be added: #{security_tags}"
+          #     security_tags_response = CloudAPI.add_security_tags(refreshed_vm_hash, connection, security_tags)
+          #     if security_tags_response.is_a?(Net::HTTPSuccess)
+          #       puts "Security tags added successfully to VM #{refreshed_vm_hash['name']}."
+          #     else
+          #       puts "\e[31mFailed to add security tags to VM #{refreshed_vm_hash['name']}. Response: #{security_tags_response.body}\e[0m"
+          #     end
+          #   end
+          #   puts "Attempting to power on VM #{vm_name}..."
+          #   task_href = CloudAPI.poweron_vm(refreshed_vm_hash, connection)
+          #   max_wait = 120 # seconds
+          #   waited = 0
+          #   interval = 10
+          #   task_status = CloudAPI.get_task_status(task_href, connection)
+          #   while task_status == 'running' || task_status == 'queued'
+          #     sleep interval
+          #     waited += interval
+          #     task_status = CloudAPI.get_task_status(task_href, connection)
+          #     if waited >= max_wait
+          #       puts_red "Timeout waiting for VM power on task to finish."
+          #       break
+          #     end
+          #   end
+          #   if task_status == 'success'
+          #     puts_green "VM #{vm_name} powered on successfully."
+          #     refreshed_vm_hash = CloudAPI.get_vm(vm_name, connection, pool)
+          #   else
+          #     puts_red "Task Power On VM #{vm_name} failed status after waiting: #{task_status}"
+          # end
           return refreshed_vm_hash
         end
         def get_vm(pool_name, vm_name)
@@ -297,7 +297,7 @@ module Vmpooler
             if task_status == 'success'
               vm_hash = check_power_on_and_get_vm(new_vmname, pool, connection)
             else
-                logger.log('s', "\e[31mTask Create VM #{new_vmname} failed status after waiting: #{task_status}\e[0m")
+              logger.log('s', "\e[31mTask Create VM #{new_vmname} failed status after waiting: #{task_status}\e[0m")
             end
           end
           vm_hash
