@@ -294,21 +294,16 @@ class CloudAPI
     request = Net::HTTP::Post.new(uri)
     request['Accept'] = "*/*;version=39.1"
     request['Authorization'] = "Bearer #{connection[:session_token]}"
-    request.content_type = 'application/vnd.vmware.vcloud.powerOnParams+xml'
+    request.content_type = 'application/vnd.vmware.vcloud.task+xml;version=5.5'
     response = Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == 'https') do |http|
       http.request(request)
     end
     if response.is_a?(Net::HTTPSuccess)
-      begin
-        body = JSON.parse(response.body)
-        href = body['href']
-        return href
-      rescue JSON::ParserError
-        Logger.log('d', "[CVM] Could not parse response body as JSON to extract href.")
-        return nil
-      end
-    else
-      return nil
+      # Parse response.body as a vCloud task response (XML)
+      xml = Nokogiri::XML(response.body)
+      xml.remove_namespaces!
+      href = xml.at_xpath('//Task')['href']
+      return href
     end
   end
   def self.poweroff_vm(vm_hash, connection)
