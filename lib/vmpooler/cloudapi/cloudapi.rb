@@ -1,4 +1,4 @@
-require 'Nokogiri'
+require 'nokogiri'
 
 class Logger
   def self.log(level, message)
