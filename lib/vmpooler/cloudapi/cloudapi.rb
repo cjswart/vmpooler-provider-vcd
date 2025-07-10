@@ -318,7 +318,7 @@ class CloudAPI
     end
     return response
   end
-  def self.cloudapi_create_vm(new_vmname, pool, connection, vapp)
+  def self.cloudapi_create_vm(new_vmname, pool, connection, vapp, customization_script = nil)
     vm_hash = {}
     Logger.log('d', "[CVM] Creating VM '#{new_vmname}' in vApp '#{pool['vapp']}'  href: '#{vapp[:href]}'")
     # Check if the VM already exists
@@ -343,23 +343,31 @@ class CloudAPI
       xml_body = <<~XML
         <root:RecomposeVAppParams xmlns:root="http://www.vmware.com/vcloud/v1.5" xmlns:ns0="http://schemas.dmtf.org/ovf/envelope/1">
           <root:SourcedItem>
-            <root:Source href="#{catalogItem_href}"
-            name="#{new_vmname}"
-            type="application/vnd.vmware.vcloud.vm+xml"/>
-            <root:InstantiationParams>
-              <root:NetworkConnectionSection><ns0:Info/>
-                <root:PrimaryNetworkConnectionIndex>0</root:PrimaryNetworkConnectionIndex>
-                <root:NetworkConnection network="#{pool['network']}">
-                  <root:NetworkConnectionIndex>0</root:NetworkConnectionIndex>
-                  <root:IpAddress/>
-                  <root:IpType>IPV4</root:IpType>
-                  <root:IsConnected>true</root:IsConnected>
-                  <root:IpAddressAllocationMode>POOL</root:IpAddressAllocationMode>
-                  <root:NetworkAdapterType>VMXNET3</root:NetworkAdapterType>
-                </root:NetworkConnection>
-              </root:NetworkConnectionSection>
-            </root:InstantiationParams>
-            <root:StorageProfile href="#{os_drive_storage_tier_href}" type="application/vnd.vmware.vcloud.vdcStorageProfile+xml"/>
+        <root:Source href="#{catalogItem_href}"
+        name="#{new_vmname}"
+        type="application/vnd.vmware.vcloud.vm+xml"/>
+        <root:InstantiationParams>
+          <root:NetworkConnectionSection><ns0:Info/>
+            <root:PrimaryNetworkConnectionIndex>0</root:PrimaryNetworkConnectionIndex>
+            <root:NetworkConnection network="#{pool['network']}">
+          <root:NetworkConnectionIndex>0</root:NetworkConnectionIndex>
+          <root:IpAddress/>
+          <root:IpType>IPV4</root:IpType>
+          <root:IsConnected>true</root:IsConnected>
+          <root:IpAddressAllocationMode>POOL</root:IpAddressAllocationMode>
+          <root:NetworkAdapterType>VMXNET3</root:NetworkAdapterType>
+            </root:NetworkConnection>
+          </root:NetworkConnectionSection>
+          <root:GuestCustomizationSection>
+            <ns0:Info/>
+            <root:Enabled>true</root:Enabled>
+            <root:CustomizationScript>
+              <![CDATA[
+                #{customization_script}
+              ]]>
+          </root:CustomizationScript>
+        </root:InstantiationParams>
+        <root:StorageProfile href="#{os_drive_storage_tier_href}" type="application/vnd.vmware.vcloud.vdcStorageProfile+xml"/>
           </root:SourcedItem>
           <root:AllEULAsAccepted>true</root:AllEULAsAccepted>
         </root:RecomposeVAppParams>
