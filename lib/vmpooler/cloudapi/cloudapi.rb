@@ -365,7 +365,9 @@ class CloudAPI
               <![CDATA[
                 #{customization_script}
               ]]>
-          </root:CustomizationScript>
+            </root:CustomizationScript>
+            <root:ComputerName>#{new_vmname}</root:ComputerName>
+          </root:GuestCustomizationSection>
         </root:InstantiationParams>
         <root:StorageProfile href="#{os_drive_storage_tier_href}" type="application/vnd.vmware.vcloud.vdcStorageProfile+xml"/>
           </root:SourcedItem>
