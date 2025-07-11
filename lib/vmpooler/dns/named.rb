@@ -1,7 +1,7 @@
 module Vmpooler
   class PoolManager
     class Dns
-      class Named < Vmpooler::PoolManager::DNS::Base
+      class Named < Vmpooler::PoolManager::Dns::Base
         def initialize(config, logger, metrics, redis_connection_pool, name, options)
           super(config, logger, metrics, redis_connection_pool, name, options)
 
